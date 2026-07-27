@@ -1,0 +1,56 @@
+# Doxygen: HTML + LaTeX/PDF (run: doxygen Doxyfile; PDF via USE_PDFLATEX or make in docs/doxygen/latex)
+
+PROJECT_NAME           = "Pricing Engine"
+PROJECT_NUMBER         =
+PROJECT_BRIEF          = "Buehler LV/LSV pricing engine: calibration, FD in X, path-dependent MC in S"
+
+OUTPUT_DIRECTORY       = docs/doxygen
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = YES
+LAYOUT_FILE            = DoxygenLayout.xml
+
+INPUT                  = src python/pricing_engine_pybind.cpp
+RECURSIVE              = YES
+FILE_PATTERNS          = *.cpp *.h
+EXCLUDE                = build build-aad build-std .venv
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = YES
+LATEX_OUTPUT           = latex
+LATEX_BATCHMODE        = YES
+USE_PDFLATEX           = YES
+PDF_HYPERLINKS         = YES
+GENERATE_XML           = NO
+
+JAVADOC_AUTOBRIEF      = YES
+OPTIMIZE_OUTPUT_FOR_C  = YES
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+# Single `csv` helper namespace + forward-declared `QuantLib`; a namespace index adds little value.
+SHOW_NAMESPACES        = NO
+
+QUIET                  = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_NO_PARAMDOC       = NO
+
+# Inheritance / collaboration diagrams (Graphviz). PNG works with HTML and pdflatex.
+HAVE_DOT               = YES
+DOT_PATH               = /opt/homebrew/bin
+CLASS_DIAGRAMS         = YES
+COLLABORATION_GRAPH    = YES
+DOT_IMAGE_FORMAT       = png
+DOT_GRAPH_MAX_NODES    = 80
+INTERACTIVE_SVG        = NO
+
+# Unicode in LaTeX (e.g. σ in briefs).
+LATEX_UNICODE          = YES
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO
+SKIP_FUNCTION_MACROS   = YES
+
+# QuantLib headers are external; avoid failing on missing include paths for our API docs
+PREDEFINED             = QL_DISABLE_DEPRECATED=

@@ -1,0 +1,5 @@
+# Python deps for notebooks / analysis (stdlib + local `pricing_engine` module excluded).
+# Build the C++ extension first: cmake --build build-std --target pricing_engine_py
+numpy==2.4.4
+matplotlib==3.10.8
+QuantLib==1.42

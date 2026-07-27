@@ -1,0 +1,429 @@
+# Pricing Engine — JSON input reference
+#
+# This file documents JSON field names, types, and option product shapes only.
+# How to call pricing_engine (calibration, simulate, price_all): see notebooks:
+#   - python/notebooks/pricing_from_json.ipynb  (book MC pricing)
+#   - python/notebooks/test_fit.ipynb         (calibration + verify)
+
+overview:
+  description: >
+    Two JSON files: market_snapshot.json (curves, vol, dividends) and
+    options_book.json (list of option specs). C++ reads in-memory tables only; no CSV.
+    Strikes and barriers: use *_fraction_of_spot (K/S) or absolute levels in S.
+    Dates: ISO strings YYYY-MM-DD; calendar TARGET (use business days).
+  pricing:
+    entry_point: price_all(specs) after simulate_paths
+    routing: Each row is dispatched by product (case-insensitive).
+    not_in_book: >
+      LV finite-difference helpers (price_european_fd, price_digital_fd) are pybind-only,
+      not options_book products. See out_of_book_api below.
+
+market_snapshot:
+  file: data/market_snapshot.json
+  fields:
+    asof:
+      type: string
+      format: YYYY-MM-DD
+      description: Valuation date (calendar anchor for curves and vol).
+    spot:
+      type: number
+      description: Spot S0 in currency per share.
+    rfr_tenor_years:
+      type: array[number]
+      description: Risk-free curve pillar times in years from asof.
+    rfr_zero_rates:
+      type: array[number]
+      description: Continuously compounded zero rates; same length as rfr_tenor_years.
+    repo_tenor_years:
+      type: array[number]
+      description: Repo/funding curve pillar times in years.
+    repo_zero_rates:
+      type: array[number]
+      description: Repo zero rates; same length as repo_tenor_years.
+    vol_tenor_years:
+      type: array[number]
+      description: >
+        Vol surface in long format: one entry per (tenor, strike) pair.
+        Repeat tenor for each strike on that smile.
+    vol_strikes:
+      type: array[number]
+      description: Absolute strikes K_S; parallel to vol_tenor_years and implied_vols.
+    implied_vols:
+      type: array[number]
+      description: Black implied vol in S; parallel to vol_tenor_years and vol_strikes.
+    dividend_dates:
+      type: array[string]
+      description: Ex-dividend dates (ISO). Cash dividends in S.
+    dividend_amounts:
+      type: array[number]
+      description: Cash dividend amounts; parallel to dividend_dates.
+    bergomi_k:
+      type: number
+      default: 2.0
+      description: Bergomi 1F mean reversion (k > 0). Model input for LSV dynamics; not calibrated.
+    bergomi_nu:
+      type: number
+      default: 1.0
+      description: Bergomi vol-of-vol (nu > 0). Model input for LSV dynamics.
+    bergomi_rho:
+      type: number
+      default: -0.7
+      description: Spot-vol correlation, in (-1, 1). Model input for LSV dynamics.
+  example:
+    asof: "2025-12-01"
+    spot: 8097.0
+    rfr_tenor_years: [0.0, 0.5, 1.0]
+    rfr_zero_rates: [0.019, 0.019, 0.021]
+    repo_tenor_years: [0.0, 1.0]
+    repo_zero_rates: [-0.005, -0.005]
+    vol_tenor_years: [0.25, 0.25, 1.0, 1.0]
+    vol_strikes: [7000.0, 8097.0, 7000.0, 8097.0]
+    implied_vols: [0.42, 0.35, 0.38, 0.32]
+    dividend_dates: ["2026-12-01"]
+    dividend_amounts: [343.425]
+    bergomi_k: 2.0
+    bergomi_nu: 1.0
+    bergomi_rho: -0.7
+
+options_book:
+  file: data/options_book.json
+  root_key: options
+  note: >
+    Sample options_book.json may omit some products listed below (e.g. european,
+    digital_accrual). All product_values are valid for price_all.
+  product_values:
+    - european
+    - digital
+    - digital_accrual
+    - asian
+    - barrier
+    - lookback
+    - autocall
+
+common_fields:
+  id:
+    required: true
+    type: string
+    description: Unique label; returned in PricedOptionResult.id.
+  product:
+    required: true
+    type: string
+    description: One of options_book.product_values (case-insensitive).
+  expiry:
+    required: expiry or expiry_years (mutually exclusive)
+    type: string
+    format: YYYY-MM-DD
+    description: >
+      Payoff / contract end date. Must be on the MC save path (after simulate_paths).
+      For digital_accrual with explicit observation_dates, expiry is still required but
+      only drives the default monitoring schedule when observation_dates is omitted.
+  expiry_years:
+    required: expiry or expiry_years (mutually exclusive)
+    type: number
+    description: >
+      Year fraction from asof (e.g. 4.0). Resolved as asof + round(365 * T) calendar days,
+      then adjusted to the first TARGET business day (Following) if the nominal date is
+      not a business day. The resolved date must be on the MC save path, so the
+      simulate_paths horizon must cover it.
+
+field_reference:
+  is_call:
+    type: boolean
+    default: true
+    used_by: [european, digital, asian, barrier, lookback]
+    ignored_by: [autocall, digital_accrual]
+  quote_space:
+    type: string
+    enum: [S, X]
+    default: S
+    used_by: [european, digital, digital_accrual]
+    rejected_by: [asian, barrier, lookback, autocall]
+    description: >
+      S = market currency; X = pure Buehler coordinate. With quote_space X the
+      contract is written on X: strike / strike_low / strike_up are pure-X levels,
+      and since X is spot-normalized the *_fraction_of_spot fields are used
+      directly as X levels (no spot scaling). Path products (asian, barrier,
+      lookback, autocall) are S-space payoffs; specifying quote_space X for them
+      is an error rather than being silently ignored.
+  strike_fraction_of_spot:
+    type: number
+    description: Strike K as K/S0; preferred over absolute strike.
+  strike:
+    type: number
+    description: Absolute strike K_S.
+  strike_style:
+    description: >
+      Meaning depends on product (same JSON key, different semantics).
+      asian: fixed | floating — floating ignores strike in the payoff (uses terminal spot).
+      lookback: fixed | floating — floating ignores strike; fixed requires strike.
+  observation_dates:
+    description: See monitoring_dates.
+  observation_frequency:
+    description: See monitoring_dates (daily | monthly; only when observation_dates is omitted).
+
+level_fields:
+  description: >
+    For barriers and digital-accrual bands: *_fraction_of_spot multiplies spot;
+    absolute key is an alternative.
+  keys:
+    - strike_fraction_of_spot / strike
+    - barrier_up_fraction_of_spot / barrier_up
+    - barrier_down_fraction_of_spot / barrier_down
+    - strike_low_fraction_of_spot / strike_low
+    - strike_up_fraction_of_spot / strike_up
+
+monitoring_dates:
+  field: observation_dates
+  type: array[string]
+  format: YYYY-MM-DD per entry
+  applies_to: [asian, barrier, lookback, autocall, digital_accrual]
+  default_if_omitted: >
+    Monthly TARGET Following from asof: asof+1M, +2M, … while date ≤ expiry; expiry is
+    appended if not already the last date (resolveMcObservationDates).
+  not_used_by: [european, digital]
+  constraints: >
+    Each date must be strictly after asof and on the MC save path (daily TARGET business
+    days to simulate_paths horizon). For daily monitoring set observation_frequency: daily,
+    or pass an explicit ISO list; omit both for the monthly default.
+  observation_frequency:
+    type: string
+    enum: [monthly, daily]
+    default: monthly
+    description: >
+      Default monitoring schedule when observation_dates is omitted. monthly = historical
+      default (see default_if_omitted); daily = every date stored on the MC save path up to
+      expiry (all simulated TARGET business days when mcSavePathFixingDates is not restricted).
+      Mutually exclusive with observation_dates.
+  mc_path_simulation: >
+    simulate_paths stores S on every TARGET business day; products read spot only on
+    observation_dates (monthly by default), not on every simulated day.
+
+discounting:
+  description: >
+    No deferred payment_date field. Cash flows are discounted to asof at the fixing date
+    (observation date for accrual legs and autocall coupons; expiry for vanillas and path payoffs).
+
+out_of_book_api:
+  description: pybind helpers not represented as options_book rows
+  methods:
+    price_european_fd:
+      note: LV FD in X or S; requires calibration only (no simulate_paths).
+    price_digital_fd:
+      note: LV FD; always priced as call (no digital put via this API).
+    price_autocall:
+      note: >
+        Shortcut autocall MC; monthly observation default; reference_notional = spot;
+        no observation_dates / reference_notional JSON fields.
+    simulate_paths_near_years:
+      note: Simulation horizon = vol-surface expiry nearest to N years (not book max date).
+    export_lv_fixed_x_csv:
+      note: Debug CSV export of σ_LV grid; not an input format.
+
+products:
+  european:
+    engine: MC via price_all
+    required: [id, product, expiry_years or expiry, strike_fraction_of_spot or strike]
+    optional: [is_call, quote_space]
+    ignored_if_present: []
+    example:
+      id: european_call_1.00_1y
+      product: european
+      expiry_years: 1.0
+      strike_fraction_of_spot: 1.0
+      is_call: true
+      quote_space: S
+
+  digital:
+    engine: MC via price_all
+    required: [id, product, expiry_years or expiry, strike_fraction_of_spot or strike]
+    optional: [is_call, quote_space, asset_or_nothing]
+    ignored_if_present: []
+    fields:
+      asset_or_nothing:
+        type: boolean
+        default: false
+        description: false = cash digital; true = asset-or-nothing digital.
+    example_cash:
+      id: digital_cash_1.00_2026-06-01
+      product: digital
+      expiry: "2026-06-01"
+      strike_fraction_of_spot: 1.0
+      is_call: true
+      quote_space: S
+      asset_or_nothing: false
+    example_asset:
+      id: digital_asset_1.00_2026-06-01
+      product: digital
+      expiry: "2026-06-01"
+      strike_fraction_of_spot: 1.0
+      is_call: true
+      quote_space: S
+      asset_or_nothing: true
+
+  digital_accrual:
+    engine: MC via price_all
+    description: >
+      Mean of cash-digital call spreads (strike_low, strike_up) over observation_dates.
+      Each leg discounted at its observation date. expiry does not enter payoff when
+      observation_dates is explicit.
+    required: [id, product, expiry_years or expiry, strike_low_*, strike_up_*]
+    optional: [quote_space, observation_dates]
+    ignored_if_present: [is_call]
+    fields:
+      observation_dates:
+        type: array[string]
+        description: See monitoring_dates (default monthly if omitted).
+    example:
+      id: digital_accrual_0.90_1.10_2026-12-01
+      product: digital_accrual
+      expiry: "2026-12-01"
+      strike_low_fraction_of_spot: 0.9
+      strike_up_fraction_of_spot: 1.1
+      quote_space: S
+      observation_dates: ["2026-03-01", "2026-06-01", "2026-09-01", "2026-12-01"]
+
+  asian:
+    engine: MC via price_all
+    description: Discrete Asian on monitoring schedule; arithmetic or geometric average.
+    required: [id, product, expiry_years or expiry]
+    optional: [is_call, average_type, strike_style, observation_dates]
+    ignored_if_present: [quote_space]
+    strike_rules:
+      fixed: strike_fraction_of_spot or strike required
+      floating: strike may appear in JSON for labelling but is not used in payoff
+    fields:
+      average_type:
+        enum: [arithmetic, geometric]
+        default: arithmetic
+      strike_style:
+        enum: [fixed, floating]
+        default: fixed
+    example_fixed:
+      id: asian_arithmetic_fixed_1.00_2026-06-01
+      product: asian
+      expiry: "2026-06-01"
+      strike_fraction_of_spot: 1.0
+      is_call: true
+      average_type: arithmetic
+      strike_style: fixed
+    example_floating:
+      id: asian_arithmetic_floating_2026-06-01
+      product: asian
+      expiry: "2026-06-01"
+      is_call: true
+      average_type: arithmetic
+      strike_style: floating
+
+  barrier:
+    engine: MC via price_all
+    description: Discrete barrier on monitoring schedule; knock checked in S.
+    required: [id, product, expiry_years or expiry, barrier_type, strike_fraction_of_spot or strike]
+    optional: [is_call, barrier_up_*, barrier_down_*, observation_dates]
+    ignored_if_present: [quote_space]
+    fields:
+      barrier_type:
+        enum: [down_out, down_in, up_out, up_in]
+      barrier_up_fraction_of_spot:
+        description: Required for up_* barriers (or barrier_up).
+      barrier_down_fraction_of_spot:
+        description: Required for down_* barriers (or barrier_down).
+    example_down_out:
+      id: barrier_down_out_0.95_0.80_2026-06-01
+      product: barrier
+      expiry: "2026-06-01"
+      strike_fraction_of_spot: 0.95
+      is_call: true
+      barrier_type: down_out
+      barrier_down_fraction_of_spot: 0.8
+
+  lookback:
+    engine: MC via price_all
+    description: >
+      Discrete lookback on the monitoring schedule (monthly by default; expiry included).
+      Market-standard payoffs: the engine tracks both running_max = max(S) and
+      running_min = min(S) over observation dates. Calls read the extremum that favours
+      them (fixed call on the max, floating call buys at the min); puts read the opposite
+      one (fixed put on the min, floating put sells at the max).
+    required: [id, product, expiry_years or expiry]
+    optional: [is_call, strike_style, strike_fraction_of_spot or strike, observation_dates, observation_frequency]
+    ignored_if_present: [quote_space]
+    payoffs:
+      fixed_call: max(running_max − K, 0)
+      fixed_put: max(K − running_min, 0)
+      floating_call: max(S_T − running_min, 0)  # buy at the low
+      floating_put: max(running_max − S_T, 0)   # sell at the high
+    strike_rules:
+      fixed: strike_fraction_of_spot or strike required
+      floating: strike not required (ignored if present)
+    fields:
+      is_call:
+        description: >
+          Fixed: true = call on running_max, false = put on running_min.
+          Floating: true = buy at the low (S_T − min), false = sell at the high (max − S_T).
+      strike_style:
+        enum: [fixed, floating]
+        default: fixed
+    example_fixed_call:
+      id: lookback_call_fixed_1y
+      product: lookback
+      expiry_years: 1.0
+      is_call: true
+      strike_style: fixed
+      strike_fraction_of_spot: 1.0
+    example_fixed_put:
+      id: lookback_put_fixed_1y
+      product: lookback
+      expiry_years: 1.0
+      is_call: false
+      strike_style: fixed
+      strike_fraction_of_spot: 1.0
+    example_floating_call:
+      id: lookback_call_floating_1y
+      product: lookback
+      expiry_years: 1.0
+      is_call: true
+      strike_style: floating
+
+  autocall:
+    engine: MC via price_all
+    description: >
+      Phoenix or Athena autocall; coupons and barrier as fractions of reference notional.
+      observation_dates default is monthly (see monitoring_dates), not quarterly — same as
+      asian/barrier/lookback when observation_dates is omitted.
+    required: [id, product, expiry_years or expiry]
+    optional:
+      - coupon_style
+      - coupon_rate_per_period
+      - barrier_fraction_of_spot
+      - reference_notional
+      - reference_notional_fraction_of_spot
+      - observation_dates
+    ignored_if_present: [is_call, quote_space, strike, strike_fraction_of_spot]
+    fields:
+      coupon_style:
+        enum: [phoenix, athena]
+        default: phoenix
+        description: phoenix = coupon each observation; athena = accrued coupons at redemption.
+      coupon_rate_per_period:
+        type: number
+        default: 0.03
+        description: >
+          Coupon per observation date (each entry in observation_dates), not per calendar
+          quarter unless you pass a quarterly observation_dates list explicitly.
+      barrier_fraction_of_spot:
+        type: number
+        default: 1.0
+        description: Autocall barrier as fraction of reference notional (default notional = spot).
+      reference_notional:
+        type: number
+        description: Absolute notional; default = spot if omitted.
+      reference_notional_fraction_of_spot:
+        type: number
+        description: Alternative to reference_notional (× spot).
+    example:
+      id: autocall_phoenix_b1.00_c0.03_2026-12-01
+      product: autocall
+      expiry: "2026-12-01"
+      coupon_style: phoenix
+      coupon_rate_per_period: 0.03
+      barrier_fraction_of_spot: 1.0

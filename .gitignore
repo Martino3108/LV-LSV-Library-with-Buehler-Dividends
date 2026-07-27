@@ -1,0 +1,54 @@
+# Build / CMake
+build/
+build-*/
+cmake-build-*/
+out/
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+compile_commands.json
+cmake_install.cmake
+Makefile
+install_manifest.txt
+_deps/
+
+# Compiled artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Generated docs
+docs/doxygen/
+
+# Scratch / unsure whether to publish
+Untitled
+Untitled.*
+forward_start_sweep_animation.ipynb
+*.log
+.cache/

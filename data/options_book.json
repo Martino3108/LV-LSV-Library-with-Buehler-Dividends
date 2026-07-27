@@ -1,0 +1,2164 @@
+{
+  "options": [
+    {
+      "id": "digital_cash_0.80_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_asset_0.80_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_cash_0.85_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_asset_0.85_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_cash_0.90_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_asset_0.90_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_cash_0.95_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_asset_0.95_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_cash_1.00_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_asset_1.00_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_cash_1.05_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_asset_1.05_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_cash_1.10_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_asset_1.10_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_cash_1.15_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "digital_asset_1.15_0.5y",
+      "product": "digital",
+      "expiry_years": 0.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "digital_cash_0.80_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_asset_0.80_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_cash_0.85_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_asset_0.85_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_cash_0.90_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_asset_0.90_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_cash_0.95_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_asset_0.95_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_cash_1.00_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_asset_1.00_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_cash_1.05_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_asset_1.05_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_cash_1.10_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_asset_1.10_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_cash_1.15_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "digital_asset_1.15_1y",
+      "product": "digital",
+      "expiry_years": 1.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "digital_cash_0.80_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_asset_0.80_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_cash_0.85_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_asset_0.85_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_cash_0.90_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_asset_0.90_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_cash_0.95_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_asset_0.95_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_cash_1.00_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_asset_1.00_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_cash_1.05_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_asset_1.05_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_cash_1.10_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_asset_1.10_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_cash_1.15_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "digital_asset_1.15_1.5y",
+      "product": "digital",
+      "expiry_years": 1.5,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "digital_cash_0.80_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_asset_0.80_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "digital_cash_0.85_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_asset_0.85_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "digital_cash_0.90_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_asset_0.90_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "digital_cash_0.95_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_asset_0.95_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "digital_cash_1.00_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_asset_1.00_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "digital_cash_1.05_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_asset_1.05_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.05
+    },
+    {
+      "id": "digital_cash_1.10_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_asset_1.10_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.1
+    },
+    {
+      "id": "digital_cash_1.15_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": false,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "digital_asset_1.15_2y",
+      "product": "digital",
+      "expiry_years": 2.0,
+      "asset_or_nothing": true,
+      "is_call": true,
+      "quote_space": "S",
+      "strike_fraction_of_spot": 1.15
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.80_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.80_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.80_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.80_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.85_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.85_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.85_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.85_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.90_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.90_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.90_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.90_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.95_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.95_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.95_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.95_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.00_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.00_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.00_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.00_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.05_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.05_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.05_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.05_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.10_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.10_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.10_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.10_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.15_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.15_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.15_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.15_1y",
+      "product": "asian",
+      "expiry_years": 1.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.80_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.80_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.80_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.80_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.85_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.85_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.85_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.85_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.90_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.90_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.90_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.90_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_0.95_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_0.95_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_0.95_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_0.95_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.00_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.00_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.00_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.00_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.05_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.05_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.05_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.05_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.05,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.10_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.10_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.10_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.10_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_arithmetic_fixed_1.15_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_arithmetic_floating_1.15_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "arithmetic",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "floating"
+    },
+    {
+      "id": "asian_geometric_fixed_1.15_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "asian_geometric_floating_1.15_2y",
+      "product": "asian",
+      "expiry_years": 2.0,
+      "average_type": "geometric",
+      "is_call": true,
+      "strike_fraction_of_spot": 1.15,
+      "strike_style": "floating"
+    },
+    {
+      "id": "barrier_up_out_0.80_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_up_out_0.80_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_up_out_0.80_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_up_out_0.80_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_up_in_0.80_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_up_in_0.80_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_up_in_0.80_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_up_in_0.80_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8
+    },
+    {
+      "id": "barrier_down_out_0.85_0.80_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_down_fraction_of_spot": 0.8,
+      "barrier_type": "down_out",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_down_in_0.85_0.80_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_down_fraction_of_spot": 0.8,
+      "barrier_type": "down_in",
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_out_0.85_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_out_0.85_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_out_0.85_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_out_0.85_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_out_0.90_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_out_0.90_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_out_0.90_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_out_0.90_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_out_0.95_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_out_0.95_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_out_0.95_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_out_0.95_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_out_1.00_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_up_out_1.00_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_up_out_1.00_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_up_out_1.00_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_out",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_up_in_0.85_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_in_0.85_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_in_0.85_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_in_0.85_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.85
+    },
+    {
+      "id": "barrier_up_in_0.90_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_in_0.90_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_in_0.90_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_in_0.90_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9
+    },
+    {
+      "id": "barrier_up_in_0.95_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_in_0.95_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_in_0.95_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_in_0.95_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.95
+    },
+    {
+      "id": "barrier_up_in_1.00_1.05_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.05,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_up_in_1.00_1.10_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.1,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_up_in_1.00_1.15_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.15,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_up_in_1.00_1.20_0.5y",
+      "product": "barrier",
+      "expiry_years": 0.5,
+      "barrier_type": "up_in",
+      "barrier_up_fraction_of_spot": 1.2,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "barrier_down_out_1.00_0.85_daily_1.5y",
+      "product": "barrier",
+      "expiry_years": 1.5,
+      "barrier_down_fraction_of_spot": 0.85,
+      "barrier_type": "down_out",
+      "is_call": true,
+      "observation_frequency": "daily",
+      "strike_fraction_of_spot": 1.0
+    },
+    {
+      "id": "lookback_call_fixed_0.80_0.5y",
+      "product": "lookback",
+      "expiry_years": 0.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_0.90_0.5y",
+      "product": "lookback",
+      "expiry_years": 0.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.00_0.5y",
+      "product": "lookback",
+      "expiry_years": 0.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.10_0.5y",
+      "product": "lookback",
+      "expiry_years": 0.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.20_0.5y",
+      "product": "lookback",
+      "expiry_years": 0.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.2,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_floating_0.5y",
+      "product": "lookback",
+      "expiry_years": 0.5,
+      "is_call": true,
+      "strike_style": "floating"
+    },
+    {
+      "id": "lookback_call_fixed_0.80_1y",
+      "product": "lookback",
+      "expiry_years": 1.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_0.90_1y",
+      "product": "lookback",
+      "expiry_years": 1.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.00_1y",
+      "product": "lookback",
+      "expiry_years": 1.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.10_1y",
+      "product": "lookback",
+      "expiry_years": 1.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.20_1y",
+      "product": "lookback",
+      "expiry_years": 1.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.2,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_floating_1y",
+      "product": "lookback",
+      "expiry_years": 1.0,
+      "is_call": true,
+      "strike_style": "floating"
+    },
+    {
+      "id": "lookback_call_fixed_0.80_1.5y",
+      "product": "lookback",
+      "expiry_years": 1.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_0.90_1.5y",
+      "product": "lookback",
+      "expiry_years": 1.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.00_1.5y",
+      "product": "lookback",
+      "expiry_years": 1.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.10_1.5y",
+      "product": "lookback",
+      "expiry_years": 1.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.20_1.5y",
+      "product": "lookback",
+      "expiry_years": 1.5,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.2,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_floating_1.5y",
+      "product": "lookback",
+      "expiry_years": 1.5,
+      "is_call": true,
+      "strike_style": "floating"
+    },
+    {
+      "id": "lookback_call_fixed_0.80_2y",
+      "product": "lookback",
+      "expiry_years": 2.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.8,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_0.90_2y",
+      "product": "lookback",
+      "expiry_years": 2.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 0.9,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.00_2y",
+      "product": "lookback",
+      "expiry_years": 2.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.0,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.10_2y",
+      "product": "lookback",
+      "expiry_years": 2.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.1,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_fixed_1.20_2y",
+      "product": "lookback",
+      "expiry_years": 2.0,
+      "is_call": true,
+      "strike_fraction_of_spot": 1.2,
+      "strike_style": "fixed"
+    },
+    {
+      "id": "lookback_call_floating_2y",
+      "product": "lookback",
+      "expiry_years": 2.0,
+      "is_call": true,
+      "strike_style": "floating"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.02_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.02_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.02_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.03_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.03_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.03_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.04_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.04_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.04_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.02_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.02_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.02_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.03_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.03_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.03_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.04_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.04_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.04_0.5y",
+      "product": "autocall",
+      "expiry_years": 0.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.02_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.02_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.02_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.03_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.03_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.03_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.04_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.04_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.04_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.02_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.02_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.02_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.03_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.03_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.03_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.04_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.04_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.04_1y",
+      "product": "autocall",
+      "expiry_years": 1.0,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.02_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.02_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.02_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.03_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.03_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.03_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b0.90_c0.04_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.00_c0.04_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_phoenix_b1.10_c0.04_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "phoenix"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.02_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.02_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.02_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.02,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.03_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.03_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.03_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.03,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b0.90_c0.04_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 0.9,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.00_c0.04_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.0,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    },
+    {
+      "id": "autocall_athena_b1.10_c0.04_1.5y",
+      "product": "autocall",
+      "expiry_years": 1.5,
+      "barrier_fraction_of_spot": 1.1,
+      "coupon_rate_per_period": 0.04,
+      "coupon_style": "athena"
+    }
+  ]
+}
