@@ -52,7 +52,11 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
                    tables.volStrikes.size() == tables.impliedVols.size(),
                "MarketDataTables: vol long-format size mismatch");
     QL_REQUIRE(tables.dividendDates.size() == tables.dividendAmounts.size(),
-               "MarketDataTables: dividend date/amount size mismatch");
+               "MarketDataTables: dividend date/cash size mismatch");
+    if (!tables.dividendProportional.empty()) {
+        QL_REQUIRE(tables.dividendDates.size() == tables.dividendProportional.size(),
+                   "MarketDataTables: dividend date/proportional size mismatch");
+    }
     QL_REQUIRE(!tables.volTenorYears.empty(), "MarketDataTables: vol surface is empty");
 
     calendar_ = TARGET();
@@ -146,14 +150,25 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
 
     dividendDates_.clear();
     dividendAmounts_.clear();
+    dividendProportional_.clear();
     dividendDates_.reserve(tables.dividendDates.size());
     dividendAmounts_.reserve(tables.dividendAmounts.size());
+    dividendProportional_.reserve(tables.dividendDates.size());
     for (Size i = 0; i < tables.dividendDates.size(); ++i) {
         if (tables.dividendDates[i].empty()) {
             continue;
         }
+        const Real cash = tables.dividendAmounts[i];
+        const Real proportional =
+            tables.dividendProportional.empty() ? Real(0.0) : tables.dividendProportional[i];
+        QL_REQUIRE(cash >= 0.0, "MarketDataTables: cash dividend must be non-negative");
+        QL_REQUIRE(proportional >= 0.0 && proportional < 1.0,
+                   "MarketDataTables: proportional dividend must be in [0, 1)");
+        QL_REQUIRE(cash > 0.0 || proportional > 0.0,
+                   "MarketDataTables: each dividend date needs cash and/or proportional > 0");
         dividendDates_.push_back(parseIsoDate(tables.dividendDates[i]));
-        dividendAmounts_.push_back(tables.dividendAmounts[i]);
+        dividendAmounts_.push_back(cash);
+        dividendProportional_.push_back(proportional);
     }
     if (!dividendDates_.empty()) {
         marketHorizon_ = std::max(marketHorizon_, dividendDates_.back());
@@ -288,8 +303,10 @@ void MarketData::loadSampleMarketSnapshot() {
     };
     dividendDates_.clear();
     dividendAmounts_.clear();
+    dividendProportional_.clear();
     dividendDates_.reserve(dividendValues.size());
     dividendAmounts_.reserve(dividendValues.size());
+    dividendProportional_.reserve(dividendValues.size());
     for (Size i = 0; i < dividendValues.size(); ++i) {
         const Integer m = static_cast<Integer>((i + 1) * 12);
         const Date exDate = calendar_.adjust(today_ + Period(m, Months), Following);
@@ -298,6 +315,7 @@ void MarketData::loadSampleMarketSnapshot() {
         }
         dividendDates_.push_back(exDate);
         dividendAmounts_.push_back(dividendValues[i]);
+        dividendProportional_.push_back(0.0);
     }
     if (!dividendDates_.empty()) {
         marketHorizon_ = std::max(marketHorizon_, dividendDates_.back());
@@ -359,6 +377,7 @@ void MarketData::loadConstantMock() {
 
     dividendDates_.clear();
     dividendAmounts_.clear();
+    dividendProportional_.clear();
     buildQuantLibHandles();
 }
 

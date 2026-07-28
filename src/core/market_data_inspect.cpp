@@ -32,7 +32,11 @@ void showImportedData(const MarketData& md) {
     std::cout << "\nDividends loaded: " << md.dividendDates().size() << "\n";
     for (Size i = 0; i < md.dividendDates().size() && i < md.dividendAmounts().size(); ++i) {
         std::cout << "  " << md.dividendDates()[i]
-                  << " -> " << md.dividendAmounts()[i] << "\n";
+                  << " cash=" << md.dividendAmounts()[i];
+        if (i < md.dividendProportional().size()) {
+            std::cout << " proportional=" << md.dividendProportional()[i];
+        }
+        std::cout << "\n";
     }
 
     std::cout << "\nImplied vol matrix [strike x expiry] loaded in md:\n";

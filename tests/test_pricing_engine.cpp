@@ -391,6 +391,63 @@ TEST(calibration_validation_and_fallbacks) {
     CHECK(fallbackFraction <= kDupireBlackFallbackWarnFraction);
 }
 
+MarketData makeFlatDividendTestMarket(const std::vector<std::string>& divDates,
+                                      const std::vector<Real>& cash,
+                                      const std::vector<Real>& proportional) {
+    MarketDataTables tables;
+    tables.asof = "2025-12-01";
+    tables.spot = 100.0;
+    tables.rfrTenorYears = {0.0, 1.0, 2.0};
+    tables.rfrZeroRates = {0.02, 0.02, 0.02};
+    tables.repoTenorYears = {0.0, 1.0, 2.0};
+    tables.repoZeroRates = {0.005, 0.005, 0.005};
+    tables.volTenorYears = {0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0};
+    tables.volStrikes = {80.0, 100.0, 120.0, 80.0, 100.0, 120.0, 80.0, 100.0, 120.0};
+    tables.impliedVols = {0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2};
+    tables.dividendDates = divDates;
+    tables.dividendAmounts = cash;
+    tables.dividendProportional = proportional;
+    MarketData md;
+    md.loadFromTables(tables);
+    return md;
+}
+
+/** Proportional-only schedule: cash floor D(T) stays zero. */
+TEST(proportional_dividends_zero_cash_floor) {
+    MarketData md = makeFlatDividendTestMarket({"2026-12-01"}, {0.0}, {0.02});
+    BuehlerModel model(md);
+    model.preprocessing();
+    for (const Date& expiry : md.expiries()) {
+        CHECK_CLOSE(model.dividendCarry0T(expiry), 0.0, 1e-12);
+    }
+}
+
+/** Affine map identities: S(0)=F, S at x=0 is the cash floor D. */
+TEST(proportional_dividends_affine_map_identities) {
+    MarketData md = makeFlatDividendTestMarket({"2026-12-01", "2027-12-01"}, {5.0, 0.0},
+                                               {0.0, 0.01});
+    BuehlerModel model(md);
+    model.preprocessing();
+    const Date probe = md.expiries().back();
+    CHECK_CLOSE(model.mapXtoS(probe, 1.0), model.forward0T(probe), 1e-10);
+    CHECK_CLOSE(model.mapXtoS(probe, 0.0), model.dividendCarry0T(probe), 1e-10);
+}
+
+/** Zero proportional vector preserves cash-only forward on a simple schedule. */
+TEST(zero_proportional_matches_cash_only_forward) {
+    MarketData cashOnly =
+        makeFlatDividendTestMarket({"2026-12-01"}, {4.0}, {});
+    MarketData withZeros =
+        makeFlatDividendTestMarket({"2026-12-01"}, {4.0}, {0.0});
+    BuehlerModel modelCash(cashOnly);
+    BuehlerModel modelZeros(withZeros);
+    modelCash.preprocessing();
+    modelZeros.preprocessing();
+    const Date probe = cashOnly.expiries().back();
+    CHECK_CLOSE(modelCash.forward0T(probe), modelZeros.forward0T(probe), 1e-10);
+    CHECK_CLOSE(modelCash.dividendCarry0T(probe), modelZeros.dividendCarry0T(probe), 1e-10);
+}
+
 } // namespace
 
 int main() {

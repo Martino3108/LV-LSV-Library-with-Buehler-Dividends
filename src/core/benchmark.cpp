@@ -44,7 +44,11 @@ void checkImportedData(const MarketData& md) {
 
     std::cout << "\nDiscrete dividends loaded: " << md.dividendDates().size() << "\n";
     for (Size i = 0; i < md.dividendDates().size() && i < md.dividendAmounts().size(); ++i) {
-        std::cout << "  " << md.dividendDates()[i] << " -> " << md.dividendAmounts()[i] << "\n";
+        std::cout << "  " << md.dividendDates()[i] << " cash=" << md.dividendAmounts()[i];
+        if (i < md.dividendProportional().size()) {
+            std::cout << " proportional=" << md.dividendProportional()[i];
+        }
+        std::cout << "\n";
     }
 
     std::cout << "\nVol grid: nodal matrix vs BlackVolTermStructure:\n";

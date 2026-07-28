@@ -18,7 +18,7 @@ Classical equity models that replace dividends with a continuous yield are a poo
 
 **S = (F − D) X + D**
 
-with **X(0) = 1**, **F** the forward and **D** the discounted value of future cash dividends (the “floor”). Volatility is modeled and the smile is calibrated on **X**. Derivatives prices are generally computed simulating Monte Carlo paths in X and mapping them to S. However, for simple products, the price in S is directly linked to the one in X after an affine transformation of the contractual parameters is performed.
+with **X(0) = 1**, **F** the forward and **D** the discounted value of future **cash** dividends (the “floor”). Proportional dividends enter via **F** only (discrete fraction of spot at ex-date). Volatility is modeled and the smile is calibrated on **X**. Derivatives prices are generally computed simulating Monte Carlo paths in X and mapping them to S. However, for simple products, the price in S is directly linked to the one in X after an affine transformation of the contractual parameters is performed.
 
 ---
 
@@ -46,7 +46,7 @@ MarketData  →  preprocessing  →  calibration (σ_X, σ_LV)
 ```
 
 1. `MarketData` — spot, risk-free and repo curves, dividend schedule, implied-vol grid in **S** (cleaned mids; no bid–ask repair here). **Python / JSON:** `PricingContext.from_tables(**market)` → `MarketData::loadFromTables()`. **C++ showcase:** `loadSampleMarketSnapshot()` (hardcoded sample) or `loadConstantMock()` (flat BS regression).
-2. `BuehlerModel::preprocessing()` — business-day grid, forwards F(0,T), dividend floor D(T).
+2. `BuehlerModel::preprocessing()` — business-day grid, forwards F(0,T), dividend floor D(T) from cash and proportional schedules.
 3. `calibration()` — nodal σ_X → bicubic surface → Dupire σ_LV on a dense grid; `check_static_arbitrage` samples the bicubic σ_X for butterfly and calendar violations.
 4. `simulateFixingPaths` — builds a `BuehlerFixingSavePath` under LV (QuantLib `PathGenerator` or fast tabulated σ_LV) or LSV. OpenMP can parallelise the fast LV and LSV evolve (`BUEHLER_MC_OPENMP`).
 
@@ -73,7 +73,7 @@ Recommended workflow: load market and book from JSON in Python, then call the C+
 
 | File                        | Purpose                                                                                                                                       |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data/market_snapshot.json` | `asof`, `spot`, rates (`rfr_*`, `repo_*`), vol surface (`vol_tenor_years`, `vol_strikes`, `implied_vols`), dividends, optional Bergomi params |
+| `data/market_snapshot.json` | `asof`, `spot`, rates (`rfr_*`, `repo_*`), vol surface (`vol_tenor_years`, `vol_strikes`, `implied_vols`), dividends (`dividend_dates`, `dividend_amounts`, `dividend_proportional`), optional Bergomi params |
 | `data/options_book.json`    | option specs for Monte Carlo pricing (`options` list)                                                                                         |
 
 

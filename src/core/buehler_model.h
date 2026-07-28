@@ -131,6 +131,9 @@ public:
     const std::vector<QuantLib::Rate>& snapshotRepoZeros() const { return inputRepoZeroRates_; }
     const std::vector<QuantLib::Date>& snapshotDividendExDates() const { return inputDividendDates_; }
     const std::vector<QuantLib::Real>& snapshotDividendCash() const { return inputDividendAmounts_; }
+    const std::vector<QuantLib::Real>& snapshotDividendProportional() const {
+        return inputDividendProportional_;
+    }
     const std::vector<QuantLib::Real>& snapshotMarketStrikes() const { return inputStrikes_; }
     const std::vector<QuantLib::Date>& snapshotMarketExpiries() const { return inputExpiries_; }
     const QuantLib::Matrix& snapshotMarketImpliedVols() const { return inputImpliedVolsMarketS_; }
@@ -216,6 +219,7 @@ private:
     QuantLib::Handle<QuantLib::BlackVolTermStructure> inputBlackVolTs_;
     std::vector<QuantLib::Date> inputDividendDates_;
     std::vector<QuantLib::Real> inputDividendAmounts_;
+    std::vector<QuantLib::Real> inputDividendProportional_;
     std::vector<QuantLib::Real> inputStrikes_;
     std::vector<QuantLib::Date> inputExpiries_;
     std::vector<QuantLib::Date> inputRiskFreeDates_;

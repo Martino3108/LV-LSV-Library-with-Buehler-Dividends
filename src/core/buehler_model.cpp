@@ -551,6 +551,7 @@ BuehlerModel::BuehlerModel(const MarketData& marketData)
   inputBlackVolTs_(marketData.blackVolTs()),
   inputDividendDates_(marketData.dividendDates()),
   inputDividendAmounts_(marketData.dividendAmounts()),
+  inputDividendProportional_(marketData.dividendProportional()),
   inputStrikes_(marketData.strikes()),
   inputExpiries_(marketData.expiries()),
   inputRiskFreeDates_(marketData.riskFreeDates()),
@@ -572,7 +573,9 @@ BuehlerModel::BuehlerModel(const MarketData& marketData)
     QL_REQUIRE(inputRepoDates_.size() == inputRepoZeroRates_.size(),
                "BuehlerModel: repo dates / zero rates size mismatch");
     QL_REQUIRE(inputDividendDates_.size() == inputDividendAmounts_.size(),
-               "BuehlerModel: dividend dates / amounts size mismatch (market)");
+               "BuehlerModel: dividend dates / cash size mismatch (market)");
+    QL_REQUIRE(inputDividendDates_.size() == inputDividendProportional_.size(),
+               "BuehlerModel: dividend dates / proportional size mismatch (market)");
     QL_REQUIRE(inputImpliedVolsMarketS_.rows() == inputStrikes_.size()
                    && inputImpliedVolsMarketS_.columns() == inputExpiries_.size(),
                "BuehlerModel: market implied vol matrix vs strike/expiry grid mismatch");
@@ -605,7 +608,24 @@ void BuehlerModel::preprocessing() {
     QL_REQUIRE(!inputBlackVolTs_.empty(),  "BuehlerModel requires blackVolTs");
     QL_REQUIRE(maturity_ >= today_,               "BuehlerModel requires maturity >= today");
     QL_REQUIRE(inputDividendDates_.size() == inputDividendAmounts_.size(),
-               "Dividend dates/amounts size mismatch");
+               "Dividend dates/cash size mismatch");
+    QL_REQUIRE(inputDividendDates_.size() == inputDividendProportional_.size(),
+               "Dividend dates/proportional size mismatch");
+
+    const auto proportionalProduct = [](const std::vector<Date>& dates,
+                                        const std::vector<Real>& proportional,
+                                        const Date& fromExclusive, const Date& toInclusive) {
+        Real product = 1.0;
+        for (Size i = 0; i < dates.size(); ++i) {
+            const Date tau = dates[i];
+            if (tau > fromExclusive && tau <= toInclusive && proportional[i] > 0.0) {
+                QL_REQUIRE(proportional[i] < 1.0,
+                           "Proportional dividend must be in [0, 1)");
+                product *= (1.0 - proportional[i]);
+            }
+        }
+        return product;
+    };
 
     businessDates_.clear();
     businessTimes_.clear();
@@ -628,25 +648,35 @@ void BuehlerModel::preprocessing() {
 
     const auto& riskFreeTs      = inputRiskFreeTs_;
     const auto& repoTs          = inputRepoTs_;
-    const auto& dividendDates   = inputDividendDates_;
-    const auto& dividendAmounts = inputDividendAmounts_;
-    const Real  spot            = inputSpotValue_;
+    const auto& dividendDates        = inputDividendDates_;
+    const auto& dividendCash         = inputDividendAmounts_;
+    const auto& dividendProportional   = inputDividendProportional_;
+    const Real  spot                   = inputSpotValue_;
 
     for (const Date& t : businessDates_) {
         const Time businessT = dayCounter_.yearFraction(today_, t);
         businessTimes_.push_back(std::max<Time>(0.0, businessT));
 
-        const Real grossForward = carryGrowthFactor(riskFreeTs, repoTs, today_, t) * spot;
+        const Real grossForward =
+            carryGrowthFactor(riskFreeTs, repoTs, today_, t) * spot *
+            proportionalProduct(dividendDates, dividendProportional, today_, t);
         Real paidDividendCarryToT    = 0.0;
         Real futureDividendEscrowAtT = 0.0;
         for (Size i = 0; i < dividendDates.size(); ++i) {
             const Date tau = dividendDates[i];
+            const Real cash = dividendCash[i];
             if (tau > today_ && tau <= t) {
-                paidDividendCarryToT +=
-                    carryGrowthFactor(riskFreeTs, repoTs, tau, t) * dividendAmounts[i];
+                if (cash > 0.0) {
+                    paidDividendCarryToT +=
+                        carryGrowthFactor(riskFreeTs, repoTs, tau, t) *
+                        proportionalProduct(dividendDates, dividendProportional, tau, t) * cash;
+                }
             } else if (tau > t) {
-                futureDividendEscrowAtT +=
-                    dividendAmounts[i] / carryGrowthFactor(riskFreeTs, repoTs, t, tau);
+                if (cash > 0.0) {
+                    futureDividendEscrowAtT +=
+                        cash / carryGrowthFactor(riskFreeTs, repoTs, t, tau) *
+                        proportionalProduct(dividendDates, dividendProportional, t, tau);
+                }
             }
         }
 

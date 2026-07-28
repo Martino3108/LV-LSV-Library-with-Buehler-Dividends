@@ -385,6 +385,7 @@ public:
                                                       const std::vector<double>& implied_vols,
                                                       const std::vector<std::string>& dividend_dates,
                                                       const std::vector<double>& dividend_amounts,
+                                                      const std::vector<double>& dividend_proportional,
                                                       const double bergomi_k,
                                                       const double bergomi_nu,
                                                       const double bergomi_rho) {
@@ -400,6 +401,8 @@ public:
         tables.impliedVols.assign(implied_vols.begin(), implied_vols.end());
         tables.dividendDates = dividend_dates;
         tables.dividendAmounts.assign(dividend_amounts.begin(), dividend_amounts.end());
+        tables.dividendProportional.assign(dividend_proportional.begin(),
+                                           dividend_proportional.end());
         tables.bergomiK = static_cast<Real>(bergomi_k);
         tables.bergomiNu = static_cast<Real>(bergomi_nu);
         tables.bergomiRho = static_cast<Real>(bergomi_rho);
@@ -517,6 +520,7 @@ public:
         std::vector<double> implied_vols;
         std::vector<std::string> dividend_dates;
         std::vector<double> dividend_amounts;
+        std::vector<double> dividend_proportional;
         std::vector<double> rfr_tenor_years;
         std::vector<double> rfr_zero_rates;
         std::vector<double> repo_tenor_years;
@@ -550,6 +554,8 @@ public:
         }
         summary.dividend_amounts.assign(market_data_->dividendAmounts().begin(),
                                         market_data_->dividendAmounts().end());
+        summary.dividend_proportional.assign(market_data_->dividendProportional().begin(),
+                                             market_data_->dividendProportional().end());
         for (const Date& d : market_data_->riskFreeDates()) {
             summary.rfr_tenor_years.push_back(static_cast<double>(
                 market_data_->dayCounter().yearFraction(market_data_->today(), d)));
@@ -895,6 +901,7 @@ PYBIND11_MODULE(pricing_engine, m) {
         .def_readonly("implied_vols", &PricingContext::MarketSummary::implied_vols)
         .def_readonly("dividend_dates", &PricingContext::MarketSummary::dividend_dates)
         .def_readonly("dividend_amounts", &PricingContext::MarketSummary::dividend_amounts)
+        .def_readonly("dividend_proportional", &PricingContext::MarketSummary::dividend_proportional)
         .def_readonly("rfr_tenor_years", &PricingContext::MarketSummary::rfr_tenor_years)
         .def_readonly("rfr_zero_rates", &PricingContext::MarketSummary::rfr_zero_rates)
         .def_readonly("repo_tenor_years", &PricingContext::MarketSummary::repo_tenor_years)
@@ -916,6 +923,7 @@ PYBIND11_MODULE(pricing_engine, m) {
                     py::arg("vol_tenor_years"), py::arg("vol_strikes"), py::arg("implied_vols"),
                     py::arg("dividend_dates") = std::vector<std::string>{},
                     py::arg("dividend_amounts") = std::vector<double>{},
+                    py::arg("dividend_proportional") = std::vector<double>{},
                     py::arg("bergomi_k") = 2.0, py::arg("bergomi_nu") = 1.0,
                     py::arg("bergomi_rho") = -0.7)
         .def_static("from_sample", &PricingContext::from_sample)

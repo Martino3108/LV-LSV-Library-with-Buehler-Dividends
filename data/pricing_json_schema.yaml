@@ -53,10 +53,13 @@ market_snapshot:
       description: Black implied vol in S; parallel to vol_tenor_years and vol_strikes.
     dividend_dates:
       type: array[string]
-      description: Ex-dividend dates (ISO). Cash dividends in S.
+      description: Ex-dividend dates (ISO). Each date may carry cash and/or proportional dividends.
     dividend_amounts:
       type: array[number]
-      description: Cash dividend amounts; parallel to dividend_dates.
+      description: Cash dividend amounts in S; parallel to dividend_dates (0 if none on that date).
+    dividend_proportional:
+      type: array[number]
+      description: Proportional dividends as fraction of spot just before ex-date; parallel to dividend_dates (0 if none).
     bergomi_k:
       type: number
       default: 2.0
@@ -81,6 +84,7 @@ market_snapshot:
     implied_vols: [0.42, 0.35, 0.38, 0.32]
     dividend_dates: ["2026-12-01"]
     dividend_amounts: [343.425]
+    dividend_proportional: [0.0]
     bergomi_k: 2.0
     bergomi_nu: 1.0
     bergomi_rho: -0.7

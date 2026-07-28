@@ -23,7 +23,10 @@ struct MarketDataTables {
     std::vector<QuantLib::Real> volStrikes;
     std::vector<QuantLib::Volatility> impliedVols;
     std::vector<std::string> dividendDates;
+    /** Cash dividends (fixed amounts in S); parallel to @c dividendDates. */
     std::vector<QuantLib::Real> dividendAmounts;
+    /** Proportional dividends (fraction of spot just before ex-date); parallel to @c dividendDates. */
+    std::vector<QuantLib::Real> dividendProportional;
     /** Bergomi 1F stochastic-vol inputs (LSV dynamics): mean reversion, vol-of-vol, spot-vol correlation. */
     QuantLib::Real bergomiK = 2.0;
     QuantLib::Real bergomiNu = 1.0;
@@ -38,7 +41,7 @@ public:
     /** @brief Build from normalized tables (e.g. from Python/JSON via @c loadFromTables). */
     void loadFromTables(const MarketDataTables& tables);
 
-    /** @brief Realistic sample snapshot: smile, curves, discrete cash dividends. */
+    /** @brief Realistic sample snapshot: smile, curves, discrete cash/proportional dividends. */
     void loadSampleMarketSnapshot();
     /** @brief Flat vol and curves for Black–Scholes regression (grid aligned with sample snapshot). */
     void loadConstantMock();
@@ -62,6 +65,7 @@ public:
     const QuantLib::Handle<QuantLib::YieldTermStructure>& repoTs() const { return repoTs_; }
     const std::vector<QuantLib::Date>& dividendDates() const { return dividendDates_; }
     const std::vector<QuantLib::Real>& dividendAmounts() const { return dividendAmounts_; }
+    const std::vector<QuantLib::Real>& dividendProportional() const { return dividendProportional_; }
     const QuantLib::Handle<QuantLib::BlackVolTermStructure>& blackVolTs() const { return blackVolTs_; }
     QuantLib::Real spotValue() const { return spotValue_; }
     const std::vector<QuantLib::Date>& riskFreeDates() const { return riskFreeDates_; }
@@ -93,6 +97,7 @@ private:
     std::vector<QuantLib::Rate> repoZeroRates_;
     std::vector<QuantLib::Date> dividendDates_;
     std::vector<QuantLib::Real> dividendAmounts_;
+    std::vector<QuantLib::Real> dividendProportional_;
     QuantLib::Handle<QuantLib::BlackVolTermStructure> blackVolTs_;
     QuantLib::Real bergomiK_ = 2.0;
     QuantLib::Real bergomiNu_ = 1.0;
