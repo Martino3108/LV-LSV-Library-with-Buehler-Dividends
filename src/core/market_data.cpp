@@ -5,6 +5,7 @@
 
 #include "market_data.h"
 #include "ql/math/interpolations/cubicinterpolation.hpp"
+#include <ql/time/daycounters/business252.hpp>
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -26,9 +27,12 @@ Date parseIsoDate(const std::string& s) {
     return Date(d, static_cast<Month>(m), y);
 }
 
-Date addYearFractionAsDays(const Date& today, Real t) {
-    const Integer days = static_cast<Integer>(std::lround(t * 365.0));
-    return today + days;
+/** Map a year fraction to a date under Business/252 (advance business days). */
+Date addYearFractionAsDays(const Date& today, Real t, const Calendar& calendar) {
+    const Integer nBusiness = static_cast<Integer>(std::lround(t * 252.0));
+    if (nBusiness == 0)
+        return today;
+    return calendar.advance(today, nBusiness, Days, Following);
 }
 
 void ensureIndex(Size idx, Size size, const std::string& what) {
@@ -60,7 +64,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     QL_REQUIRE(!tables.volTenorYears.empty(), "MarketDataTables: vol surface is empty");
 
     calendar_ = TARGET();
-    dayCounter_ = Actual365Fixed();
+    dayCounter_ = Business252(calendar_);
     today_ = parseIsoDate(tables.asof);
     spotValue_ = tables.spot;
 
@@ -69,7 +73,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     riskFreeDates_.reserve(tables.rfrTenorYears.size());
     riskFreeZeroRates_.reserve(tables.rfrZeroRates.size());
     for (Size i = 0; i < tables.rfrTenorYears.size(); ++i) {
-        riskFreeDates_.push_back(addYearFractionAsDays(today_, tables.rfrTenorYears[i]));
+        riskFreeDates_.push_back(addYearFractionAsDays(today_, tables.rfrTenorYears[i], calendar_));
         riskFreeZeroRates_.push_back(tables.rfrZeroRates[i]);
     }
     QL_REQUIRE(!riskFreeDates_.empty(), "MarketDataTables: risk-free curve is empty");
@@ -79,7 +83,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     repoDates_.reserve(tables.repoTenorYears.size());
     repoZeroRates_.reserve(tables.repoZeroRates.size());
     for (Size i = 0; i < tables.repoTenorYears.size(); ++i) {
-        repoDates_.push_back(addYearFractionAsDays(today_, tables.repoTenorYears[i]));
+        repoDates_.push_back(addYearFractionAsDays(today_, tables.repoTenorYears[i], calendar_));
         repoZeroRates_.push_back(tables.repoZeroRates[i]);
     }
     QL_REQUIRE(!repoDates_.empty(), "MarketDataTables: repo curve is empty");
@@ -110,7 +114,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     strikes_ = std::move(volStrikes);
     expiries_.clear();
     for (Real t : maturityYears) {
-        expiries_.push_back(addYearFractionAsDays(today_, t));
+        expiries_.push_back(addYearFractionAsDays(today_, t, calendar_));
     }
 
     marketHorizon_ = today_;
@@ -190,7 +194,7 @@ void MarketData::loadSampleMarketSnapshot() {
     using namespace QuantLib;
 
     calendar_   = TARGET();
-    dayCounter_ = Actual365Fixed();
+    dayCounter_ = Business252(calendar_);
     today_      = Date(1, December, 2025);
 
     spotValue_ = 8097.0;
@@ -205,7 +209,7 @@ void MarketData::loadSampleMarketSnapshot() {
     expiries_.clear();
     expiries_.reserve(volTenorsYears.size());
     for (const Time t : volTenorsYears) {
-        Date d = addYearFractionAsDays(today_, t);
+        Date d = addYearFractionAsDays(today_, t, calendar_);
         d = calendar_.adjust(d, Following);
         expiries_.push_back(d);
     }
@@ -235,10 +239,10 @@ void MarketData::loadSampleMarketSnapshot() {
     riskFreeDates_.push_back(today_);
     repoDates_.push_back(today_);
     for (const Time t : rfrTenorsYears) {
-        riskFreeDates_.push_back(addYearFractionAsDays(today_, t));
+        riskFreeDates_.push_back(addYearFractionAsDays(today_, t, calendar_));
     }
     for (const Time t : repoTenorsYears) {
-        repoDates_.push_back(addYearFractionAsDays(today_, t));
+        repoDates_.push_back(addYearFractionAsDays(today_, t, calendar_));
     }
 
     const std::vector<Rate> rfrValues = {
@@ -328,7 +332,7 @@ void MarketData::loadConstantMock() {
     using namespace QuantLib;
 
     calendar_   = TARGET();
-    dayCounter_ = Actual365Fixed();
+    dayCounter_ = Business252(calendar_);
     today_      = Date(1, December, 2025);
 
     spotValue_ = 100.0;

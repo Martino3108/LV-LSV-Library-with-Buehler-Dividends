@@ -307,11 +307,11 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         std::max<Size>(2, static_cast<Size>(std::ceil(denseHorizonT * 12.0)));
 
     const Integer dayHorizon =
-        std::max(1, static_cast<Integer>(std::lround(denseHorizonT * 365.0)));
+        std::max(1, static_cast<Integer>(std::lround(denseHorizonT * 252.0)));
     const Integer dayFloor =
-        std::max(1, static_cast<Integer>(std::lround(timeFloor * 365.0)));
+        std::max(1, static_cast<Integer>(std::lround(timeFloor * 252.0)));
 
-    // Front-loaded calendar grid: w^2 in [0,1], same convention as FD rollback (fixed).
+    // Front-loaded business-day grid: w^2 in [0,1], same convention as FD rollback (fixed).
     std::vector<Date> denseExpiries;
     denseExpiries.reserve(nDenseExp);
     for (Size j = 0; j < nDenseExp; ++j) {
@@ -324,9 +324,9 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
                 ? dayFloor
                 : static_cast<Integer>(std::llround(
                       dayFloor + frontLoaded * static_cast<Real>(dayHorizon - dayFloor)));
-        Date d = calendar.adjust(today + offset, Following);
+        Date d = calendar.advance(today, offset, Days, Following);
         if (!denseExpiries.empty() && d <= denseExpiries.back()) {
-            d = calendar.adjust(denseExpiries.back() + 1, Following);
+            d = calendar.advance(denseExpiries.back(), 1, Days, Following);
         }
         denseExpiries.push_back(d);
     }

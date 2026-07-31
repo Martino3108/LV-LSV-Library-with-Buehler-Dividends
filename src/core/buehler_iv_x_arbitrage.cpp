@@ -30,8 +30,8 @@ QuantLib::Real normalizedCallPureX(const QuantLib::Handle<QuantLib::BlackVolTerm
 
 QuantLib::Date dateFromYearFraction(const BuehlerModel& b, QuantLib::Time T) {
     using namespace QuantLib;
-    const Integer days = std::max<Integer>(1, static_cast<Integer>(std::lround(T * 365.0)));
-    return b.calendar().adjust(b.today() + days, Following);
+    const Integer nBusiness = std::max<Integer>(1, static_cast<Integer>(std::lround(T * 252.0)));
+    return b.calendar().advance(b.today(), nBusiness, Days, Following);
 }
 
 } // namespace
