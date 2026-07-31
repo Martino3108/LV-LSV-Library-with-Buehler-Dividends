@@ -4,6 +4,7 @@
 
 #include "buehler_iv_x_arbitrage.h"
 #include "benchmark_numeric.h"
+#include "market_data.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -29,9 +30,7 @@ QuantLib::Real normalizedCallPureX(const QuantLib::Handle<QuantLib::BlackVolTerm
 }
 
 QuantLib::Date dateFromYearFraction(const BuehlerModel& b, QuantLib::Time T) {
-    using namespace QuantLib;
-    const Integer nBusiness = std::max<Integer>(1, static_cast<Integer>(std::lround(T * 252.0)));
-    return b.calendar().advance(b.today(), nBusiness, Days, Following);
+    return dateFromBusiness252YearFraction(b.today(), T, b.calendar());
 }
 
 } // namespace

@@ -124,15 +124,16 @@ double pipeline_sanity_check_BS_fallback(const QuantLib::BigNatural buehlerMcSee
     double sumAbsErrLookback = 0.0;
     double sumAbsErrAutocall = 0.0;
 
-    const Date horizonMax =
-        md.calendar().advance(md.today(), kAsianSavePathTenorMonths, Months, Following);
+    const Date horizonMax = dateFromBusiness252YearFraction(
+        md.today(), static_cast<Real>(kAsianSavePathTenorMonths) / 12.0, md.calendar());
     const std::vector<Date> bankFixingDates =
         buehlerMcSimulationDatesEveryNBusinessDays(buehler, horizonMax, kDefaultMcBusinessDayStep);
 
     std::vector<TenorAccumulators> tenorAcc(nTenors);
     for (Size t = 0; t < nTenors; ++t) {
         const int months = kAsianSanityTenorMonths[t];
-        tenorAcc[t].expiry = md.calendar().advance(md.today(), months, Months, Following);
+        tenorAcc[t].expiry = dateFromBusiness252YearFraction(
+            md.today(), static_cast<Real>(months) / 12.0, md.calendar());
         tenorAcc[t].strikeF = qlEquityForward(md, tenorAcc[t].expiry);
         tenorAcc[t].spotS = md.spotValue();
     }

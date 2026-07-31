@@ -299,6 +299,7 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     }
 
     // dense time grid: floor at 1M (avoid Dupire deep in short-end extrapolation).
+    // Business-day offsets use the same Business/252 map as dateFromBusiness252YearFraction.
     const Date marketMaxExpiry = *std::max_element(marketExpiries.begin(), marketExpiries.end());
     const Time marketMaxT  = dayCounter.yearFraction(today, marketMaxExpiry);
     const Time timeFloor   = 1.0 / 12.0;

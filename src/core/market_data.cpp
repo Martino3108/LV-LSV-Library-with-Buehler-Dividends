@@ -27,14 +27,6 @@ Date parseIsoDate(const std::string& s) {
     return Date(d, static_cast<Month>(m), y);
 }
 
-/** Map a year fraction to a date under Business/252 (advance business days). */
-Date addYearFractionAsDays(const Date& today, Real t, const Calendar& calendar) {
-    const Integer nBusiness = static_cast<Integer>(std::lround(t * 252.0));
-    if (nBusiness == 0)
-        return today;
-    return calendar.advance(today, nBusiness, Days, Following);
-}
-
 void ensureIndex(Size idx, Size size, const std::string& what) {
     if (idx >= size) {
         QL_FAIL("Index out of range for " << what << ": idx=" << idx << " size=" << size);
@@ -64,7 +56,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     QL_REQUIRE(!tables.volTenorYears.empty(), "MarketDataTables: vol surface is empty");
 
     calendar_ = TARGET();
-    dayCounter_ = Business252(calendar_);
+    dayCounter_ = Business252(calendar_);  // unique YF convention (see dateFromBusiness252YearFraction)
     today_ = parseIsoDate(tables.asof);
     spotValue_ = tables.spot;
 
@@ -73,7 +65,8 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     riskFreeDates_.reserve(tables.rfrTenorYears.size());
     riskFreeZeroRates_.reserve(tables.rfrZeroRates.size());
     for (Size i = 0; i < tables.rfrTenorYears.size(); ++i) {
-        riskFreeDates_.push_back(addYearFractionAsDays(today_, tables.rfrTenorYears[i], calendar_));
+        riskFreeDates_.push_back(
+            dateFromBusiness252YearFraction(today_, tables.rfrTenorYears[i], calendar_));
         riskFreeZeroRates_.push_back(tables.rfrZeroRates[i]);
     }
     QL_REQUIRE(!riskFreeDates_.empty(), "MarketDataTables: risk-free curve is empty");
@@ -83,7 +76,8 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     repoDates_.reserve(tables.repoTenorYears.size());
     repoZeroRates_.reserve(tables.repoZeroRates.size());
     for (Size i = 0; i < tables.repoTenorYears.size(); ++i) {
-        repoDates_.push_back(addYearFractionAsDays(today_, tables.repoTenorYears[i], calendar_));
+        repoDates_.push_back(
+            dateFromBusiness252YearFraction(today_, tables.repoTenorYears[i], calendar_));
         repoZeroRates_.push_back(tables.repoZeroRates[i]);
     }
     QL_REQUIRE(!repoDates_.empty(), "MarketDataTables: repo curve is empty");
@@ -114,7 +108,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     strikes_ = std::move(volStrikes);
     expiries_.clear();
     for (Real t : maturityYears) {
-        expiries_.push_back(addYearFractionAsDays(today_, t, calendar_));
+        expiries_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
     }
 
     marketHorizon_ = today_;
@@ -194,7 +188,7 @@ void MarketData::loadSampleMarketSnapshot() {
     using namespace QuantLib;
 
     calendar_   = TARGET();
-    dayCounter_ = Business252(calendar_);
+    dayCounter_ = Business252(calendar_);  // unique YF convention (see dateFromBusiness252YearFraction)
     today_      = Date(1, December, 2025);
 
     spotValue_ = 8097.0;
@@ -209,9 +203,7 @@ void MarketData::loadSampleMarketSnapshot() {
     expiries_.clear();
     expiries_.reserve(volTenorsYears.size());
     for (const Time t : volTenorsYears) {
-        Date d = addYearFractionAsDays(today_, t, calendar_);
-        d = calendar_.adjust(d, Following);
-        expiries_.push_back(d);
+        expiries_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
     }
 
     const std::vector<Real> strikeMultipliers = {
@@ -239,10 +231,10 @@ void MarketData::loadSampleMarketSnapshot() {
     riskFreeDates_.push_back(today_);
     repoDates_.push_back(today_);
     for (const Time t : rfrTenorsYears) {
-        riskFreeDates_.push_back(addYearFractionAsDays(today_, t, calendar_));
+        riskFreeDates_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
     }
     for (const Time t : repoTenorsYears) {
-        repoDates_.push_back(addYearFractionAsDays(today_, t, calendar_));
+        repoDates_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
     }
 
     const std::vector<Rate> rfrValues = {
@@ -301,7 +293,7 @@ void MarketData::loadSampleMarketSnapshot() {
         }
     }
 
-    // Five annual discrete cash dividends at 1Y..5Y.
+    // Five annual discrete cash dividends at Business/252 1Y..5Y.
     const std::vector<Real> dividendValues = {
         343.425, 228.9458, 223.6222, 225.3806, 210.553
     };
@@ -312,8 +304,8 @@ void MarketData::loadSampleMarketSnapshot() {
     dividendAmounts_.reserve(dividendValues.size());
     dividendProportional_.reserve(dividendValues.size());
     for (Size i = 0; i < dividendValues.size(); ++i) {
-        const Integer m = static_cast<Integer>((i + 1) * 12);
-        const Date exDate = calendar_.adjust(today_ + Period(m, Months), Following);
+        const Date exDate =
+            dateFromBusiness252YearFraction(today_, static_cast<Real>(i + 1), calendar_);
         if (exDate <= today_) {
             continue;
         }
@@ -332,7 +324,7 @@ void MarketData::loadConstantMock() {
     using namespace QuantLib;
 
     calendar_   = TARGET();
-    dayCounter_ = Business252(calendar_);
+    dayCounter_ = Business252(calendar_);  // unique YF convention (see dateFromBusiness252YearFraction)
     today_      = Date(1, December, 2025);
 
     spotValue_ = 100.0;
@@ -341,19 +333,15 @@ void MarketData::loadConstantMock() {
     bergomiNu_  = 1.0;
     bergomiRho_ = -0.7;
 
-    // Keep the same dimensionality/grid as loadSampleMarketSnapshot for clean A/B comparisons.
-    expiries_ = {
-        today_ + 1   * Months, today_ + 2   * Months, today_ + 3   * Months,
-        today_ + 6   * Months, today_ + 9   * Months, today_ + 12  * Months,
-        today_ + 18  * Months, today_ + 24  * Months, today_ + 36  * Months,
-        today_ + 42  * Months, today_ + 48  * Months, today_ + 54  * Months,
-        today_ + 60  * Months, today_ + 66  * Months, today_ + 72  * Months,
-        today_ + 78  * Months, today_ + 84  * Months, today_ + 90  * Months,
-        today_ + 96  * Months, today_ + 102 * Months, today_ + 108 * Months,
-        today_ + 114 * Months, today_ + 120 * Months
+    // Same grid cardinality as loadSampleMarketSnapshot; tenors as Business/252 YF (months/12).
+    const std::vector<Time> mockTenorYears = {
+        1.0 / 12.0, 2.0 / 12.0, 3.0 / 12.0, 6.0 / 12.0, 9.0 / 12.0, 1.0,
+        1.5, 2.0, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0
     };
-    for (Date& d : expiries_) {
-        d = calendar_.adjust(d, Following);
+    expiries_.clear();
+    expiries_.reserve(mockTenorYears.size());
+    for (const Time t : mockTenorYears) {
+        expiries_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
     }
     strikes_ = {
         50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0,

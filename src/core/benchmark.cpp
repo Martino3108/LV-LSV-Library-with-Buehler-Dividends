@@ -90,13 +90,14 @@ void benchmark_asian_fast_seed_sweep(MarketData& md,
     constexpr BigNatural kSeedOffsetFastN = 2'000'000'000ULL;
 
     const Date horizonMax =
-        md.calendar().advance(md.today(), kHorizonYears, Years, Following);
+        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(kHorizonYears), md.calendar());
 
     BuehlerModel model(md);
     model.preprocessing();
     model.calibration(/*runValidation=*/true);
     const Date expiry =
-        md.calendar().advance(md.today(), kOptionMaturityYears, Years, Following);
+        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(kOptionMaturityYears),
+                                        md.calendar());
     const Real strikeF = model.forward0T(expiry);
 
     std::cout << std::fixed << std::setprecision(8);

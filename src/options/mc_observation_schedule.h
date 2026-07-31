@@ -12,7 +12,8 @@
 
 class BuehlerModel;
 
-/** @brief Monthly @c Following grid from today through @p expiry (appends @p expiry if needed). */
+/** @brief Monthly calendar-month @c Following grid from today through @p expiry
+ *  (appends @p expiry if needed). Monitoring frequency, not a Business/252 tenor map. */
 std::vector<QuantLib::Date> mcObservationDatesMonthlyThroughExpiry(const BuehlerModel& buehler,
                                                                      const QuantLib::Date& expiry);
 

@@ -99,7 +99,8 @@ Date resolveForwardStartDate(const MarketData& md, const BuehlerFixingSavePath& 
     if (startYears <= 0) {
         return md.today();
     }
-    const Date target = md.calendar().advance(md.today(), startYears, Years, Following);
+    const Date target =
+        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(startYears), md.calendar());
     if (bank.hasFixingDate(target)) {
         return target;
     }
@@ -204,7 +205,8 @@ void forward_start_smile_t1_sweep(const MarketData& md, const int expiryYears,
     QL_REQUIRE(t1MaxYears < expiryYears,
                "forward_start_smile_t1_sweep: require t1MaxYears < expiryYears");
 
-    const Date expiryDate = md.calendar().advance(md.today(), expiryYears, Years, Following);
+    const Date expiryDate =
+        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(expiryYears), md.calendar());
 
     std::cout << std::fixed;
     std::cout << "\n=== forward_start_smile_t1_sweep ===\n"

@@ -202,8 +202,8 @@ Real levelFromFractionOrAbsolute(const py::dict& spec, const char* fraction_key,
     return Null<Real>();
 }
 
-/** Resolve `expiry` (ISO) or `expiry_years` (Business/252 year fraction from asof:
- *  advance round(252*T) TARGET business days, Following). Mutually exclusive; one required. */
+/** Resolve `expiry` (ISO) or `expiry_years` (Business/252 year fraction from asof).
+ *  Mutually exclusive; one required. */
 Date expiryFromSpec(const py::dict& spec, const Date& today, const Calendar& calendar) {
     const bool hasIso = dictHas(spec, "expiry");
     const bool hasYears = dictHas(spec, "expiry_years");
@@ -218,8 +218,7 @@ Date expiryFromSpec(const py::dict& spec, const Date& today, const Calendar& cal
         if (years <= 0.0) {
             throw std::invalid_argument("expiry_years must be positive");
         }
-        const Integer nBusiness = static_cast<Integer>(std::lround(years * 252.0));
-        return calendar.advance(today, nBusiness, Days, Following);
+        return dateFromBusiness252YearFraction(today, years, calendar);
     }
     throw std::invalid_argument("missing required field: expiry (or expiry_years)");
 }
@@ -773,14 +772,13 @@ public:
         return results;
     }
 
-    /** Same rule as option specs: advance round(252*T) TARGET business days (Following). */
+    /** Same Business/252 rule as option specs (@c dateFromBusiness252YearFraction). */
     std::string resolve_expiry_years(const double years) const {
         if (years <= 0.0) {
             throw std::invalid_argument("expiry_years must be positive");
         }
-        const Integer nBusiness = static_cast<Integer>(std::lround(years * 252.0));
         return formatIsoDate(
-            market_data_->calendar().advance(market_data_->today(), nBusiness, Days, Following));
+            dateFromBusiness252YearFraction(market_data_->today(), years, market_data_->calendar()));
     }
 
     std::string today() const { return formatIsoDate(model_->today()); }

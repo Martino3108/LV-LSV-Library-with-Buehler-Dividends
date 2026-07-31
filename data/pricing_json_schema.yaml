@@ -10,7 +10,9 @@ overview:
     Two JSON files: market_snapshot.json (curves, vol, dividends) and
     options_book.json (list of option specs). C++ reads in-memory tables only; no CSV.
     Strikes and barriers: use *_fraction_of_spot (K/S) or absolute levels in S.
-    Dates: ISO strings YYYY-MM-DD; calendar TARGET (use business days).
+    Dates: ISO strings YYYY-MM-DD; calendar TARGET (business days).
+    Year fractions use Business/252 exclusively: date = asof + round(252*T)
+    TARGET business days (Following).
   pricing:
     entry_point: price_all(specs) after simulate_paths
     routing: Each row is dispatched by product (case-insensitive).
@@ -30,21 +32,24 @@ market_snapshot:
       description: Spot S0 in currency per share.
     rfr_tenor_years:
       type: array[number]
-      description: Risk-free curve pillar times in years from asof.
+      description: >
+        Risk-free curve pillar times as Business/252 year fractions from asof
+        (resolved via round(252*T) TARGET business days).
     rfr_zero_rates:
       type: array[number]
       description: Continuously compounded zero rates; same length as rfr_tenor_years.
     repo_tenor_years:
       type: array[number]
-      description: Repo/funding curve pillar times in years.
+      description: >
+        Repo/funding curve pillar times as Business/252 year fractions from asof.
     repo_zero_rates:
       type: array[number]
       description: Repo zero rates; same length as repo_tenor_years.
     vol_tenor_years:
       type: array[number]
       description: >
-        Vol surface in long format: one entry per (tenor, strike) pair.
-        Repeat tenor for each strike on that smile.
+        Vol surface tenors as Business/252 year fractions from asof (long format:
+        one entry per (tenor, strike) pair; repeat tenor for each strike on that smile).
     vol_strikes:
       type: array[number]
       description: Absolute strikes K_S; parallel to vol_tenor_years and implied_vols.
@@ -125,10 +130,9 @@ common_fields:
     required: expiry or expiry_years (mutually exclusive)
     type: number
     description: >
-      Year fraction from asof (e.g. 4.0). Resolved as asof + round(365 * T) calendar days,
-      then adjusted to the first TARGET business day (Following) if the nominal date is
-      not a business day. The resolved date must be on the MC save path, so the
-      simulate_paths horizon must cover it.
+      Business/252 year fraction from asof (e.g. 4.0). Resolved as
+      asof + round(252 * T) TARGET business days (Following). The resolved
+      date must be on the MC save path, so the simulate_paths horizon must cover it.
 
 field_reference:
   is_call:

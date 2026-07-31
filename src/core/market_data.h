@@ -6,9 +6,28 @@
 #ifndef MARKET_DATA_H
 #define MARKET_DATA_H
 
+#include <cmath>
 #include <string>
 #include <vector>
 #include <ql/quantlib.hpp>
+
+/**
+ * @brief Map a Business/252 year fraction to a date.
+ *
+ * Advances @c round(252 * t) TARGET business days from @p today with Following
+ * adjustment. This is the unique year-fraction ↔ date convention for the engine
+ * (market tenors, @c expiry_years, dense grids, benchmarks).
+ * @p t == 0 (or rounds to 0 business days) returns @p today.
+ */
+inline QuantLib::Date dateFromBusiness252YearFraction(const QuantLib::Date& today,
+                                                      QuantLib::Real t,
+                                                      const QuantLib::Calendar& calendar) {
+    const QuantLib::Integer nBusiness =
+        static_cast<QuantLib::Integer>(std::lround(t * 252.0));
+    if (nBusiness == 0)
+        return today;
+    return calendar.advance(today, nBusiness, QuantLib::Days, QuantLib::Following);
+}
 
 /** @brief Normalized market tables passed to @c MarketData::loadFromTables. */
 struct MarketDataTables {
