@@ -2,11 +2,11 @@
 
 A C++ library with python interface which, starting from QuantLib's local volatility framework, introduces a robust calibration engine under the Buehler discrete-dividend model, as well as fast Monte Carlo path generation and a nonparametric approach to simulate local stochastic volatility (LSV) paths.
 
-**References:**
+References:
 Hans Buehler, *[Volatility and Dividends — Volatility Modelling with Cash Dividends and Simple Credit Risk](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1141877)*  
 Anthonie W. van der Stoep, Lech A. Grzelak & Cornelis W. Oosterlee, *[The Heston Stochastic-Local Volatility Model: Efficient Monte Carlo Simulation](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2278122)*
 
-You need a **pre-built QuantLib**.
+You need a pre-built QuantLib.
 
 ---
 
@@ -14,11 +14,11 @@ You need a **pre-built QuantLib**.
 
 ## Why Buehler and not a flat dividend yield
 
-Classical equity models that replace dividends with a continuous yield are a poor fit for single names: the market pays discrete cash dividends on an ex-date calendar, often together with proportional adjustments. Buehler’s paper derives the no-arbitrage spot dynamics compatible with that schedule. Spot splits into a forward/dividend floor plus a martingale **X**:
+Classical equity models that replace dividends with a continuous yield are a poor fit for single names: the market pays discrete cash dividends on an ex-date calendar, often together with proportional adjustments. Buehler’s paper derives the no-arbitrage spot dynamics compatible with that schedule. Spot splits into a forward/dividend floor plus a martingale X:
 
-**S = (F − D) X + D**
+S = (F − D) X + D
 
-with **X(0) = 1**, **F** the forward and **D** the discounted value of future **cash** dividends (the “floor”). Proportional dividends enter via **F** only (discrete fraction of spot at ex-date). Volatility is modeled and the smile is calibrated on **X**. Derivatives prices are generally computed simulating Monte Carlo paths in X and mapping them to S. However, for simple products, the price in S is directly linked to the one in X after an affine transformation of the contractual parameters is performed.
+with X(0) = 1, F the forward and D the discounted value of future cash dividends (the “floor”). Proportional dividends enter via F only (discrete fraction of spot at ex-date). Volatility is modeled and the smile is calibrated on X. Derivatives prices are generally computed simulating Monte Carlo paths in X and mapping them to S. However, for simple products, the price in S is directly linked to the one in X after an affine transformation of the contractual parameters is performed.
 
 ---
 
@@ -26,11 +26,11 @@ with **X(0) = 1**, **F** the forward and **D** the discounted value of future **
 
 ## Models
 
-Both dynamics live on the Buehler **pure coordinate X** (see above). The implementation offers two layers on top of the same calibrated smile.
+Both dynamics live on the Buehler pure coordinate X (see above). The implementation offers two layers on top of the same calibrated smile.
 
-**Local volatility** is how the engine reproduces today's market. You load a Black implied-vol grid in **S**; preprocessing maps it to implied vol in **X**, smooths it into a bicubic surface, and runs Dupire on a dense (T, k_x) grid to obtain a fixed local vol σ_LV(t, x).
+Local volatility is how the engine reproduces today's market. You load a Black implied-vol grid in S; preprocessing maps it to implied vol in X, smooths it into a bicubic surface, and runs Dupire on a dense (T, k_x) grid to obtain a fixed local vol σ_LV(t, x).
 
-**Local stochastic volatility**: after LV is fixed a one-factor Bergomi-style driver is added on **X**. The simulator uses the bins technique explained in [van der Stoep, Grzelak & Oosterlee, 2014](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2278122). This project does not focus on the estimation of the stochastic volatility parameters, that could be a natural extension.
+Local stochastic volatility: after LV is fixed a one-factor Bergomi-style driver is added on X. The simulator uses the bins technique explained in [van der Stoep, Grzelak & Oosterlee, 2014](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2278122). This project does not focus on the estimation of the stochastic volatility parameters, that could be a natural extension.
 
 ---
 
@@ -45,19 +45,21 @@ MarketData  →  preprocessing  →  calibration (σ_X, σ_LV)
            →  simulateFixingPaths (LV or LSV) →  product pricers
 ```
 
-1. `MarketData` — spot, risk-free and repo curves, dividend schedule, implied-vol grid in **S** (cleaned mids; no bid–ask repair here). **Python / JSON:** `PricingContext.from_tables(**market)` → `MarketData::loadFromTables()`. **C++ showcase:** `loadSampleMarketSnapshot()` (hardcoded sample) or `loadConstantMock()` (flat BS regression).
-2. `BuehlerModel::preprocessing()` — business-day grid, forwards F(0,T), dividend floor D(T) from cash and proportional schedules.
-3. `calibration()` — nodal σ_X → bicubic surface → Dupire σ_LV on a dense grid; `check_static_arbitrage` samples the bicubic σ_X for butterfly and calendar violations.
-4. `simulateFixingPaths` — builds a `BuehlerFixingSavePath` under LV (QuantLib `PathGenerator` or fast tabulated σ_LV) or LSV. OpenMP can parallelise the fast LV and LSV evolve (`BUEHLER_MC_OPENMP`).
+1. `MarketData` — spot, risk-free and repo curves, dividend schedule, implied-vol grid in S (cleaned mids; no bid–ask repair here). Python / JSON: `PricingContext.from_tables(**market)` → `MarketData::loadFromTables()`. C++ showcase: `loadSampleMarketSnapshot()` (hardcoded sample) or `loadConstantMock()` (flat BS regression).
+2. `BuehlerModel::preprocessing()` — affine A(t)/D(t) tabulated on every calendar day to maturity, forwards F(0,T), dividend floor from cash and proportional schedules.
+3. `calibration()` — nodal σ_X → bicubic surface → Dupire σ_LV on a dense front-loaded time grid; `check_static_arbitrage` samples the bicubic σ_X for butterfly and calendar violations.
+4. `simulateFixingPaths` — builds a `BuehlerFixingSavePath` under LV or LSV, evolving every calendar day to the horizon. OpenMP can parallelise the fast LV and LSV evolve (`BUEHLER_MC_OPENMP`).
 
-**Pricing.** Under LV, Europeans and digitals can also be priced by FD on the pure-**X** grid after a strike transform (`LvEuropean`*, `LvDigital*`; Python: `price_european_fd` / `price_digital_fd`). The JSON book / `price_all` path is Monte Carlo: Europeans, digitals, digital accrual, Asian, barrier, lookback, and autocall evaluate payoffs on a `BuehlerFixingSavePath` via `priceFromSavePath`.
+There is no holiday calendar: `MarketData` uses QuantLib `NullCalendar` (every civil day is valid). Quote clock, Dupire, affine map, MC, and monthly monitoring (`+1 Month`) are all pure calendar / ACT/365.
+
+Pricing. Under LV, Europeans and digitals can also be priced by FD on the pure-X grid after a strike transform (`LvEuropean`*, `LvDigital`*; Python: `price_european_fd` / `price_digital_fd`). The JSON book / `price_all` path is Monte Carlo: Europeans, digitals, digital accrual, Asian, barrier, lookback, and autocall evaluate payoffs on a `BuehlerFixingSavePath` via `priceFromSavePath`.
 
 
 | Layer  | Types                                                                                                | Role                                                      |
 | ------ | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Market | `MarketData`                                                                                         | Curves, spot, vol grid, dividends                         |
 | Model  | `BuehlerModel`                                                                                       | Preprocess, calibrate, LSV, `mapXtoS`, path bank          |
-| FD     | `LvEuropean*`, `LvDigital*`                                                                          | Finite Difference on **X** under LV                       |
+| FD     | `LvEuropean*`, `LvDigital*`                                                                          | Finite Difference on X under LV                       |
 | MC     | `EuropeanMc*`, `DigitalMc*`, `DigitalAccrualMc*`, `AsianMc`, `BarrierMc`, `LookbackMc`, `AutocallMc` | Payoffs on `BuehlerFixingSavePath` (LV or LSV)            |
 | Checks | `benchmark.h`, `verify_fit.h`                                                                        | Smile verify, σ_X arbitrages, LSV vs LV, regression tests |
 
@@ -71,10 +73,10 @@ MarketData  →  preprocessing  →  calibration (σ_X, σ_LV)
 Recommended workflow: load market and book from JSON in Python, then call the C++ engine through `pricing_engine`.
 
 
-| File                        | Purpose                                                                                                                                       |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| File                        | Purpose                                                                                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `data/market_snapshot.json` | `asof`, `spot`, rates (`rfr_*`, `repo_*`), vol surface (`vol_tenor_years`, `vol_strikes`, `implied_vols`), dividends (`dividend_dates`, `dividend_amounts`, `dividend_proportional`), optional Bergomi params |
-| `data/options_book.json`    | option specs for Monte Carlo pricing (`options` list)                                                                                         |
+| `data/options_book.json`    | option specs for Monte Carlo pricing (`options` list)                                                                                                                                                         |
 
 
 ```python

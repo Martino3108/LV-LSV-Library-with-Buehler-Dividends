@@ -4,7 +4,7 @@
  *
  * Payoffs use @c sLevel on the save path; returns @f$C_S = P(T)\,\mathbb{E}[\mathrm{payoff}_S]@f$.
  * Monitoring on @c params.observationDates (e.g. monthly); if empty, falls back per
- * @c params.observationFrequency: monthly @c Following schedule through @c params.expiry
+ * @c params.observationFrequency: monthly calendar-month schedule through @c params.expiry
  * (expiry appended when missing), or every save-path fixing when daily.
  * Payoffs use @c sLevel; knock checked at each observation on the same barrier in S.
  * Returns @f$P(0,T)\,\mathbb{E}[\mathrm{payoff}_S]@f$ with zero rebate.

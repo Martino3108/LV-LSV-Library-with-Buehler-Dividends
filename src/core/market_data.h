@@ -12,21 +12,20 @@
 #include <ql/quantlib.hpp>
 
 /**
- * @brief Map a Business/252 year fraction to a date.
+ * @brief Map an ACT/365 year fraction to a date.
  *
- * Advances @c round(252 * t) TARGET business days from @p today with Following
- * adjustment. This is the unique year-fraction ↔ date convention for the engine
- * (market tenors, @c expiry_years, dense grids, benchmarks).
- * @p t == 0 (or rounds to 0 business days) returns @p today.
+ * Advances @c round(365 * t) calendar days from @p today. This is the unique
+ * year-fraction ↔ date convention for the engine (market tenors, @c expiry_years,
+ * dense grids, benchmarks); the inverse is @c Actual365Fixed 's
+ * @c (d − today)/365, so the round trip is exact (up to the @c round) and the
+ * map is bijective on calendar dates — no business-day adjustment, no collisions.
+ * The calendar argument is retained for signature stability but unused.
  */
-inline QuantLib::Date dateFromBusiness252YearFraction(const QuantLib::Date& today,
-                                                      QuantLib::Real t,
-                                                      const QuantLib::Calendar& calendar) {
-    const QuantLib::Integer nBusiness =
-        static_cast<QuantLib::Integer>(std::lround(t * 252.0));
-    if (nBusiness == 0)
-        return today;
-    return calendar.advance(today, nBusiness, QuantLib::Days, QuantLib::Following);
+inline QuantLib::Date dateFromAct365YearFraction(const QuantLib::Date& today,
+                                                 QuantLib::Real t,
+                                                 const QuantLib::Calendar& calendar) {
+    (void)calendar;
+    return today + static_cast<QuantLib::Integer>(std::lround(t * 365.0));
 }
 
 /** @brief Normalized market tables passed to @c MarketData::loadFromTables. */

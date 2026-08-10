@@ -37,6 +37,7 @@ double simulateToHorizon(BuehlerModel& model, const Date& horizonMax, BuehlerMcD
     mcSettings.lsvBins = lsvBins;
 
     const clock::time_point t0 = clock::now();
+    // Empty dates → every calendar day to horizon (ACT/365-aligned MC grid).
     model.simulateFixingPaths(horizonMax, {}, mcSettings);
     return std::chrono::duration<double, std::milli>(clock::now() - t0).count();
 }
@@ -100,22 +101,11 @@ Date resolveForwardStartDate(const MarketData& md, const BuehlerFixingSavePath& 
         return md.today();
     }
     const Date target =
-        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(startYears), md.calendar());
-    if (bank.hasFixingDate(target)) {
-        return target;
-    }
-    QL_REQUIRE(!bank.fixingDates().empty(),
-               "resolveForwardStartDate: empty fixing bank");
-    Date best = bank.fixingDates().front();
-    Integer bestDiff = std::abs(static_cast<Integer>(target.serialNumber() - best.serialNumber()));
-    for (const Date& d : bank.fixingDates()) {
-        const Integer diff = std::abs(static_cast<Integer>(target.serialNumber() - d.serialNumber()));
-        if (diff < bestDiff) {
-            bestDiff = diff;
-            best = d;
-        }
-    }
-    return best;
+        dateFromAct365YearFraction(md.today(), static_cast<Real>(startYears), md.calendar());
+    QL_REQUIRE(bank.hasFixingDate(target),
+               "resolveForwardStartDate: ACT/365 T1 " << target
+               << " not on MC bank (horizon must cover that calendar date)");
+    return target;
 }
 
 std::string formatT1Label(const int startYears) {
@@ -206,7 +196,7 @@ void forward_start_smile_t1_sweep(const MarketData& md, const int expiryYears,
                "forward_start_smile_t1_sweep: require t1MaxYears < expiryYears");
 
     const Date expiryDate =
-        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(expiryYears), md.calendar());
+        dateFromAct365YearFraction(md.today(), static_cast<Real>(expiryYears), md.calendar());
 
     std::cout << std::fixed;
     std::cout << "\n=== forward_start_smile_t1_sweep ===\n"

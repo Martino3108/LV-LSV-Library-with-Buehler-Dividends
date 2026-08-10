@@ -21,7 +21,7 @@ enum class BuehlerOptionPriceSpace {
 
 /** @brief Default monitoring schedule used when @c observationDates is empty. */
 enum class McObservationFrequency {
-    Monthly, ///< monthly Following grid through expiry (historical default)
+    Monthly, ///< pure calendar +1 Month through expiry (historical default)
     Daily    ///< every date stored on the MC save path up to expiry
 };
 

@@ -155,7 +155,9 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     BuehlerLvDenseRepairCounts* outRepair = nullptr,
     Handle<BlackVolTermStructure>* impliedVolXBicubicOut = nullptr,
     bool useInjectedMinStrikeKxForSmile = false,
-    Real injectedMinStrikeKxForSmile = 0.0) {
+    Real injectedMinStrikeKxForSmile = 0.0,
+    bool useInjectedMaxStrikeKxForSmile = false,
+    Real injectedMaxStrikeKxForSmile = 0.0) {
 
     QL_REQUIRE(maxDate > today, "Fixed local-vol build requires maxDate > today");
     QL_REQUIRE(!marketExpiries.empty(), "Fixed local-vol build requires non-empty expiries");
@@ -169,9 +171,12 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
                "Buehler fixed LV: market X strikes must start at a positive finite kx");
 
     // Implied σ_X: monotonic cubic on kx support; left/right wings linear (full spline slopes). Bicubic in (T,kx).
-    // Optional: kx = max_T kx(K_min,T) injected on every smile column before the monotonic cubic.
+    // Optional synthetic abscissae on every smile column: kx = max_T kx(K_min,T) and
+    // kx = min_T kx(K_max,T) (common reliable band after the S→X map).
     Matrix impliedVolsX(marketXStrikes.size(), marketExpiries.size());
     const Size nKmer = marketKs.size();
+    const Size nInjected =
+        (useInjectedMinStrikeKxForSmile ? 1 : 0) + (useInjectedMaxStrikeKxForSmile ? 1 : 0);
     for (Size j = 0; j < marketExpiries.size(); ++j) {
         const Real A = affineAatExp[j];
         const Real D = affineDatExp[j];
@@ -191,8 +196,8 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
 
         std::vector<Real> kxs;
         std::vector<Real> sigs;
-        kxs.reserve(nKmer + (useInjectedMinStrikeKxForSmile ? 1 : 0));
-        sigs.reserve(nKmer + (useInjectedMinStrikeKxForSmile ? 1 : 0));
+        kxs.reserve(nKmer + nInjected);
+        sigs.reserve(nKmer + nInjected);
         for (Size m = 0; m < nKmer; ++m) {
             const Real kx = (marketKs[m] - D) / A;
             if (!(kx > 0.0) || !std::isfinite(kx))
@@ -203,15 +208,19 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
             kxs.push_back(kx);
             sigs.push_back(sv);
         }
-        if (useInjectedMinStrikeKxForSmile && injectedMinStrikeKxForSmile > 0.0 &&
-            std::isfinite(injectedMinStrikeKxForSmile)) {
-            const Volatility svInj =
-                pureBlackVolTs->blackVol(marketExpiries[j], injectedMinStrikeKxForSmile, true);
+        auto tryInject = [&](Real kxInj) {
+            if (!(kxInj > 0.0) || !std::isfinite(kxInj))
+                return;
+            const Volatility svInj = pureBlackVolTs->blackVol(marketExpiries[j], kxInj, true);
             if (std::isfinite(svInj) && svInj > 0.0) {
-                kxs.push_back(injectedMinStrikeKxForSmile);
+                kxs.push_back(kxInj);
                 sigs.push_back(svInj);
             }
-        }
+        };
+        if (useInjectedMinStrikeKxForSmile)
+            tryInject(injectedMinStrikeKxForSmile);
+        if (useInjectedMaxStrikeKxForSmile)
+            tryInject(injectedMaxStrikeKxForSmile);
         if (kxs.size() < 2) {
             fillColumnDirect();
             continue;
@@ -299,7 +308,8 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     }
 
     // dense time grid: floor at 1M (avoid Dupire deep in short-end extrapolation).
-    // Business-day offsets use the same Business/252 map as dateFromBusiness252YearFraction.
+    // Front-loaded nodes in ACT/365 year-fraction space (same quote clock as the market),
+    // mapped with dateFromAct365YearFraction — no Business/252 hybrid.
     const Date marketMaxExpiry = *std::max_element(marketExpiries.begin(), marketExpiries.end());
     const Time marketMaxT  = dayCounter.yearFraction(today, marketMaxExpiry);
     const Time timeFloor   = 1.0 / 12.0;
@@ -307,12 +317,7 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     const Size nDenseExp =
         std::max<Size>(2, static_cast<Size>(std::ceil(denseHorizonT * 12.0)));
 
-    const Integer dayHorizon =
-        std::max(1, static_cast<Integer>(std::lround(denseHorizonT * 252.0)));
-    const Integer dayFloor =
-        std::max(1, static_cast<Integer>(std::lround(timeFloor * 252.0)));
-
-    // Front-loaded business-day grid: w^2 in [0,1], same convention as FD rollback (fixed).
+    // Front-loaded ACT/365 grid: w^2 in [0,1], same front-loading shape as FD rollback.
     std::vector<Date> denseExpiries;
     denseExpiries.reserve(nDenseExp);
     for (Size j = 0; j < nDenseExp; ++j) {
@@ -320,36 +325,27 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
                            ? Real(0.0)
                            : static_cast<Real>(j) / static_cast<Real>(nDenseExp - 1);
         const Real frontLoaded = w * w;
-        const Integer offset =
+        const Time t =
             (nDenseExp <= 1)
-                ? dayFloor
-                : static_cast<Integer>(std::llround(
-                      dayFloor + frontLoaded * static_cast<Real>(dayHorizon - dayFloor)));
-        Date d = calendar.advance(today, offset, Days, Following);
+                ? timeFloor
+                : timeFloor + frontLoaded * (denseHorizonT - timeFloor);
+        Date d = dateFromAct365YearFraction(today, t, calendar);
         if (!denseExpiries.empty() && d <= denseExpiries.back()) {
-            d = calendar.advance(denseExpiries.back(), 1, Days, Following);
+            d = denseExpiries.back() + 1; // keep nodes strictly increasing in calendar time
         }
         denseExpiries.push_back(d);
     }
 
-    // dense strike grid: uniform kx on [xLow, xHigh] where xHigh is the smile right anchor minus one
-    // full dense-cell step (as if the equispaced grid on [xLow, xHighRight] dropped its last node). The
-    // last tabulated kx sits one mesh width inside `marketXStrikes.back()` so `TabulatedKxFlatOutsideLocalVol`
-    // can flat-extend at the true right edge.
+    // dense strike grid: uniform kx on the bicubic abscissa [xLow, xHighRight], then cropped to the
+    // synthetic band [max_T kx(K_min), min_T kx(K_max)] when those nodes are injected.
     const Real xLow = marketXStrikes.front();
     const Real xHighRight = marketXStrikes.back();
     QL_REQUIRE(xHighRight > xLow, "X strike range is degenerate");
     constexpr Size nDenseStr = 200;
-    const Real denseKxStepFull =
-        (xHighRight - xLow) / static_cast<Real>(nDenseStr > 1 ? nDenseStr - 1 : 1);
-    const Real xHigh = xHighRight - denseKxStepFull;
-    QL_REQUIRE(xHigh > xLow,
-               "Buehler fixed LV: kx range degenerate after right shrink by one dense cell (increase nDenseStr "
-               "or widen bicubic kx segment)");
     std::vector<Real> denseXStrikes;
     denseXStrikes.reserve(nDenseStr);
     for (Size i = 0; i < nDenseStr; ++i) {
-        denseXStrikes.push_back(xLow + i * (xHigh - xLow) / (nDenseStr - 1));
+        denseXStrikes.push_back(xLow + i * (xHighRight - xLow) / (nDenseStr - 1));
     }
 
     // sample local vol from rebuilt X-implied surface
@@ -393,25 +389,46 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         }
     }
 
-    // When smile injection defines synthetic kx(K_min), FixedLocalVol uses only kx >= that node.
+    // Crop FixedLocalVol to the synthetic common band:
+    //   left  = max_T kx(K_min,T),   right = min_T kx(K_max,T)
+    // (specular edges of the reliable S→X strike map).
+    Size i0 = 0;
+    Size i1 = nStr; // exclusive
     if (useInjectedMinStrikeKxForSmile && injectedMinStrikeKxForSmile > 0.0 &&
         std::isfinite(injectedMinStrikeKxForSmile)) {
-        const Real kxSyn = injectedMinStrikeKxForSmile;
-        Size i0 = nStr;
+        const Real kxSynLo = injectedMinStrikeKxForSmile;
+        i0 = nStr;
         for (Size i = 0; i < nStr; ++i) {
-            if (denseXStrikes[i] + 1.0e-12 >= kxSyn) {
+            if (denseXStrikes[i] + 1.0e-12 >= kxSynLo) {
                 i0 = i;
                 break;
             }
         }
         QL_REQUIRE(i0 < nStr,
-                   "Synthetic kx lies above Dupire dense kx grid: cannot build fixed LV from kx_syn");
-        QL_REQUIRE(nStr - i0 >= 2,
-                   "Dupire kx grid leaves fewer than 2 nodes from synthetic to kx max; refine kx grid");
+                   "Synthetic kx_lo lies above Dupire dense kx grid: cannot build fixed LV");
+    }
+    if (useInjectedMaxStrikeKxForSmile && injectedMaxStrikeKxForSmile > 0.0 &&
+        std::isfinite(injectedMaxStrikeKxForSmile)) {
+        const Real kxSynHi = injectedMaxStrikeKxForSmile;
+        i1 = 0;
+        for (Size i = nStr; i > 0; --i) {
+            if (denseXStrikes[i - 1] <= kxSynHi + 1.0e-12) {
+                i1 = i;
+                break;
+            }
+        }
+        QL_REQUIRE(i1 > 0,
+                   "Synthetic kx_hi lies below Dupire dense kx grid: cannot build fixed LV");
+    }
+    QL_REQUIRE(i1 > i0,
+               "Dupire kx synthetic band [kx_lo, kx_hi] is empty after crop");
+    QL_REQUIRE(i1 - i0 >= 2,
+               "Dupire kx grid leaves fewer than 2 nodes in the synthetic band; refine kx grid");
+    if (i0 != 0 || i1 != nStr) {
         std::vector<Real> croppedX(denseXStrikes.begin() + static_cast<std::ptrdiff_t>(i0),
-                                   denseXStrikes.end());
-        auto croppedMat = ext::make_shared<Matrix>(nStr - i0, nExp);
-        for (Size ii = 0; ii < nStr - i0; ++ii) {
+                                   denseXStrikes.begin() + static_cast<std::ptrdiff_t>(i1));
+        auto croppedMat = ext::make_shared<Matrix>(i1 - i0, nExp);
+        for (Size ii = 0; ii < i1 - i0; ++ii) {
             for (Size jj = 0; jj < nExp; ++jj)
                 (*croppedMat)[ii][jj] = (*sampledLocalVolMatrix)[i0 + ii][jj];
         }
@@ -602,6 +619,7 @@ void BuehlerModel::preprocessing() {
     preBicubicImpliedVolXKxGrid_.clear();
     preBicubicImpliedVolsX_ = Matrix();
     calibrationMinKx_ = Null<Real>();
+    calibrationMaxKx_ = Null<Real>();
     impliedVolXBicubicTs_ = Handle<BlackVolTermStructure>();
 
     QL_REQUIRE(!inputRiskFreeTs_.empty(),  "BuehlerModel requires riskFreeTs");
@@ -635,11 +653,10 @@ void BuehlerModel::preprocessing() {
     pureSlopes_.clear();
     pureIntercepts_.clear();
 
+    // Affine A(t)/D(t) nodes: every calendar day to maturity (same clock as ACT/365 MC).
     for (Date d = today_; d <= maturity_; d = d + 1)
-        if (calendar_.isBusinessDay(d))
-            businessDates_.push_back(d);
-    if (businessDates_.empty())
-        businessDates_.push_back(today_);
+        businessDates_.push_back(d);
+    QL_REQUIRE(!businessDates_.empty(), "BuehlerModel: empty affine date grid");
 
     businessTimes_.reserve(businessDates_.size());
     forwards0T_.reserve(businessDates_.size());
@@ -655,8 +672,8 @@ void BuehlerModel::preprocessing() {
     const Real  spot                   = inputSpotValue_;
 
     for (const Date& t : businessDates_) {
-        const Time businessT = dayCounter_.yearFraction(today_, t);
-        businessTimes_.push_back(std::max<Time>(0.0, businessT));
+        const Time yearFracT = dayCounter_.yearFraction(today_, t);
+        businessTimes_.push_back(std::max<Time>(0.0, yearFracT));
 
         const Real grossForward =
             carryGrowthFactor(riskFreeTs, repoTs, today_, t) * spot *
@@ -709,27 +726,32 @@ void BuehlerModel::calibration(const bool runValidation) {
     lastLvDenseRepair_ = BuehlerLvDenseRepairCounts{};
     impliedVolXBicubicTs_ = Handle<BlackVolTermStructure>();
 
-    // kx band for bicubic: common equispaced axis [segLo, segHi]. Left/right anchored like
-    // the lowest/highest market strikes mapped to kx: min_T kx(K_min,T) and max_T kx(K_max,T).
-    // K_min is excluded from bicubicMarketKs for the per-column smile; segLo still anchors the
-    // equispaced kx grid. Additionally max_T kx(K_min,T) over bicubic expiries is injected as a
-    // fixed abscissa on every smile before the monotonic cubic (see buildFixedLocalVolFromPureImpliedX).
+    // kx band for bicubic: common equispaced axis [segLo, segHi]. Left/right anchored on
+    // min_T kx(K_min,T) and max_T kx(K_max,T). K_min and K_max are excluded from
+    // bicubicMarketKs for the per-column smile; the synthetic nodes
+    // max_T kx(K_min,T) and min_T kx(K_max,T) are injected on every smile and define the
+    // FixedLocalVol crop (see buildFixedLocalVolFromPureImpliedX).
     const std::vector<Real>& marketKs = inputStrikes_;
     const std::vector<Date>& expiries  = inputExpiries_;
     const Size nKs  = marketKs.size();
     const Size nExp = expiries.size();
-    QL_REQUIRE(nKs >= 3,
-               "Fixed X local-vol needs at least three market strikes after removing the lowest");
+    QL_REQUIRE(nKs >= 4,
+               "Fixed X local-vol needs at least four market strikes after removing the lowest "
+               "and highest");
     const Size minStrikeIdx = static_cast<Size>(
         std::distance(marketKs.begin(), std::min_element(marketKs.begin(), marketKs.end())));
+    const Size maxStrikeIdx = static_cast<Size>(
+        std::distance(marketKs.begin(), std::max_element(marketKs.begin(), marketKs.end())));
+    QL_REQUIRE(minStrikeIdx != maxStrikeIdx,
+               "Fixed X local-vol: lowest and highest market strikes coincide");
     std::vector<Real> bicubicMarketKs;
-    bicubicMarketKs.reserve(nKs - 1);
+    bicubicMarketKs.reserve(nKs - 2);
     for (Size i = 0; i < nKs; ++i) {
-        if (i != minStrikeIdx)
+        if (i != minStrikeIdx && i != maxStrikeIdx)
             bicubicMarketKs.push_back(marketKs[i]);
     }
     QL_REQUIRE(bicubicMarketKs.size() >= 2,
-               "Fixed X local-vol needs at least two strikes after removing the lowest");
+               "Fixed X local-vol needs at least two strikes after removing the lowest and highest");
     const Size nKsBic = bicubicMarketKs.size();
 
     Real kxGlobalMin = QL_MAX_REAL;
@@ -783,7 +805,7 @@ void BuehlerModel::calibration(const bool runValidation) {
     const Real segLo = kxLeftAnchor;
     const Real segHi = kxRightAnchor;
     QL_REQUIRE(segHi > segLo && std::isfinite(segLo) && std::isfinite(segHi),
-               "Implied-X common kx segment [kmax(min), kmin(max)] is degenerate");
+               "Implied-X common kx segment [min kx(K_min), max kx(K_max)] is degenerate");
 
     const Size nGridX = std::max<Size>(2, nKsBic);
     std::vector<Real> marketXStrikes;
@@ -819,22 +841,35 @@ void BuehlerModel::calibration(const bool runValidation) {
                "Fixed X local-vol bicubic needs at least two expiries after removing earliest");
     const std::vector<Real> bicubicXStrikes = marketXStrikes;
 
-    // Shared kx abscissa for smile columns: max over bicubic expiries of kx from lowest S strike K_min.
-    Real kxInjectedSmile = -QL_MAX_REAL;
+    // Shared synthetic kx abscissae for smile columns / FixedLocalVol crop:
+    // left  = max over bicubic expiries of kx(K_min),
+    // right = min over bicubic expiries of kx(K_max).
+    Real kxInjectedSmileLo = -QL_MAX_REAL;
+    Real kxInjectedSmileHi = QL_MAX_REAL;
     for (Size j = 0; j < bicubicAffA.size(); ++j) {
         const Real A = bicubicAffA[j];
         const Real D = bicubicAffD[j];
         if (A <= 0.0)
             continue;
-        const Real kx = (anchorKLo - D) / A;
-        if (kx > 0.0 && std::isfinite(kx))
-            kxInjectedSmile = std::max(kxInjectedSmile, kx);
+        const Real kxLo = (anchorKLo - D) / A;
+        if (kxLo > 0.0 && std::isfinite(kxLo))
+            kxInjectedSmileLo = std::max(kxInjectedSmileLo, kxLo);
+        const Real kxHi = (anchorKHi - D) / A;
+        if (kxHi > 0.0 && std::isfinite(kxHi))
+            kxInjectedSmileHi = std::min(kxInjectedSmileHi, kxHi);
     }
-    const bool useKxInjectedSmile =
-        kxInjectedSmile > 0.0 && std::isfinite(kxInjectedSmile);
+    const bool useKxInjectedSmileLo =
+        kxInjectedSmileLo > 0.0 && std::isfinite(kxInjectedSmileLo);
+    const bool useKxInjectedSmileHi =
+        kxInjectedSmileHi < QL_MAX_REAL && kxInjectedSmileHi > 0.0 &&
+        std::isfinite(kxInjectedSmileHi);
+    QL_REQUIRE(useKxInjectedSmileLo && useKxInjectedSmileHi,
+               "Fixed X local-vol: could not form synthetic kx band from K_min / K_max");
+    QL_REQUIRE(kxInjectedSmileHi > kxInjectedSmileLo,
+               "Fixed X local-vol: synthetic band max_T kx(K_min) >= min_T kx(K_max)");
 
-    calibrationMinKx_ =
-        useKxInjectedSmile ? kxInjectedSmile : marketXStrikes.front();
+    calibrationMinKx_ = kxInjectedSmileLo;
+    calibrationMaxKx_ = kxInjectedSmileHi;
 
     fixedPureLocalVolTs_ = buildFixedLocalVolFromPureImpliedX(
         today_, calendar_, dayCounter_,
@@ -853,8 +888,10 @@ void BuehlerModel::calibration(const bool runValidation) {
         &preBicubicImpliedVolXKxGrid_,
         &lastLvDenseRepair_,
         &impliedVolXBicubicTs_,
-        useKxInjectedSmile,
-        useKxInjectedSmile ? kxInjectedSmile : 0.0);
+        true,
+        kxInjectedSmileLo,
+        true,
+        kxInjectedSmileHi);
 
     mcSigmaLookupCache_.reset();
 
@@ -902,10 +939,17 @@ QuantLib::Real BuehlerModel::calibrationMinKx() const {
     return calibrationMinKx_;
 }
 
+QuantLib::Real BuehlerModel::calibrationMaxKx() const {
+    using namespace QuantLib;
+    QL_REQUIRE(calibrationMaxKx_ != Null<Real>(),
+               "BuehlerModel: call calibration() before calibrationMaxKx()");
+    return calibrationMaxKx_;
+}
+
 QuantLib::Real BuehlerModel::interpolateByDate(const std::vector<QuantLib::Real>& values,
                                                const QuantLib::Date& t) const {
     using namespace QuantLib;
-    QL_REQUIRE(!businessDates_.empty(), "BuehlerModel has empty business-date grid");
+    QL_REQUIRE(!businessDates_.empty(), "BuehlerModel has empty affine date grid");
     QL_REQUIRE(values.size() == businessDates_.size(), "BuehlerModel interpolation size mismatch");
     if (t <= businessDates_.front()) return values.front();
     if (t >= businessDates_.back())  return values.back();
@@ -940,8 +984,12 @@ void BuehlerModel::simulateFixingPaths(const QuantLib::Date& horizonMax,
     fixingPathHorizonMax_ = horizonMax;
     std::vector<QuantLib::Date> dates = simulationDates;
     if (dates.empty())
-        dates = buehlerMcSimulationDatesEveryNBusinessDays(*this, horizonMax,
-                                                             kDefaultMcBusinessDayStep);
+        dates = buehlerMcSimulationDatesEveryNCalendarDays(*this, horizonMax,
+                                                             kDefaultMcCalendarDayStep);
+    // Ensure requested save fixings are on the evolution grid (no-op when the
+    // default calendar-day schedule already covers today..horizon).
+    dates.insert(dates.end(), settings.mcSavePathFixingDates.begin(),
+                 settings.mcSavePathFixingDates.end());
     fixingPathSimulationDates_ = normalizeSimulationDates(*this, dates, horizonMax);
     fixingSavePath_ = simulateBuehlerFixingSavePath(*this, horizonMax, fixingPathSimulationDates_,
                                                     settings);
@@ -952,8 +1000,10 @@ BuehlerFixingSavePath BuehlerModel::simulateFixingBank(const QuantLib::Date& hor
                                                        const BuehlerMcSettings& settings) const {
     std::vector<QuantLib::Date> dates = simulationDates;
     if (dates.empty())
-        dates = buehlerMcSimulationDatesEveryNBusinessDays(*this, horizonMax,
-                                                           kDefaultMcBusinessDayStep);
+        dates = buehlerMcSimulationDatesEveryNCalendarDays(*this, horizonMax,
+                                                           kDefaultMcCalendarDayStep);
+    dates.insert(dates.end(), settings.mcSavePathFixingDates.begin(),
+                 settings.mcSavePathFixingDates.end());
     return simulateBuehlerFixingSavePath(*this, horizonMax, dates, settings);
 }
 
@@ -1017,7 +1067,7 @@ BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
     BuehlerCalibrationValidationReport rep;
 
     const BuehlerImpliedVolXArbitrageReport arbRep =
-        check_static_arbitrage(*this, 32, 64, -5.0e-4, -5.0e-4, false);
+        check_static_arbitrage(*this, 240, 100, 0.0, 0.0, false);
     rep.staticArbitrageOk = arbRep.allPassed();
 
     const Real kxTabLo = denseXStrikes_.empty() ? 0.0 : denseXStrikes_.front();
@@ -1216,8 +1266,12 @@ BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
     if (!rep.staticArbitrageOk && options.throwOnFailure) {
         std::ostringstream oss;
         oss << "validate_calibration: static arbitrage failed"
-            << " (butterfly=" << arbRep.violationsButterfly
-            << " calendar=" << arbRep.violationsCalendar << ")";
+            << " (butterfly=" << arbRep.violationsButterfly << "/" << arbRep.nSamplesButterfly
+            << " calendar=" << arbRep.violationsCalendar << "/" << arbRep.nSamplesCalendar
+            << " minButterfly=" << arbRep.minButterfly << "; gate: >"
+            << (100.0 * BuehlerImpliedVolXArbitrageReport::kMaxViolationFraction)
+            << "% violations or minButterfly < "
+            << BuehlerImpliedVolXArbitrageReport::kMinButterflyFloor << ")";
         QL_FAIL(oss.str());
     }
 

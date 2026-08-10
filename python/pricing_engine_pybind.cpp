@@ -9,6 +9,7 @@
 #include "autocall_mc_buehler_option.h"
 #include "barrier_mc_buehler_option.h"
 #include "buehler_iv_x_arbitrage.h"
+#include "buehler_fixing_path_simulate.h"
 #include "buehler_mc_path_pricing.h"
 #include "buehler_model.h"
 #include "buehler_mc_settings.h"
@@ -202,7 +203,7 @@ Real levelFromFractionOrAbsolute(const py::dict& spec, const char* fraction_key,
     return Null<Real>();
 }
 
-/** Resolve `expiry` (ISO) or `expiry_years` (Business/252 year fraction from asof).
+/** Resolve `expiry` (ISO) or `expiry_years` (ACT/365 year fraction from asof).
  *  Mutually exclusive; one required. */
 Date expiryFromSpec(const py::dict& spec, const Date& today, const Calendar& calendar) {
     const bool hasIso = dictHas(spec, "expiry");
@@ -218,7 +219,7 @@ Date expiryFromSpec(const py::dict& spec, const Date& today, const Calendar& cal
         if (years <= 0.0) {
             throw std::invalid_argument("expiry_years must be positive");
         }
-        return dateFromBusiness252YearFraction(today, years, calendar);
+        return dateFromAct365YearFraction(today, years, calendar);
     }
     throw std::invalid_argument("missing required field: expiry (or expiry_years)");
 }
@@ -484,13 +485,25 @@ public:
     SimulateResult simulate_paths(const std::string& expiry_iso, const Size mc_samples,
                                   const BigNatural seed, const std::string& dynamics,
                                   const std::vector<std::string>& save_fixing_dates,
-                                  const Size lsv_bins, const Size path_workers) {
+                                  const Size lsv_bins, const Size path_workers,
+                                  const std::vector<std::string>& extra_dates) {
         const Date expiry = parseIsoDate(expiry_iso);
         const BuehlerMcSettings settings =
             makeMcSettings(mc_samples, seed, dynamics, save_fixing_dates, lsv_bins, path_workers);
 
+        // Default evolution: every calendar day to the horizon (ACT/365-aligned).
+        // extra_dates / save_fixing_dates are unioned in for restricted banks or
+        // explicit add-ons; with the daily calendar grid they are usually redundant.
+        std::vector<Date> simDates =
+            buehlerMcSimulationDatesEveryNCalendarDays(*model_, expiry);
+        simDates.insert(simDates.end(), settings.mcSavePathFixingDates.begin(),
+                        settings.mcSavePathFixingDates.end());
+        for (const std::string& iso : extra_dates) {
+            simDates.push_back(parseIsoDate(iso));
+        }
+
         const auto t0 = std::chrono::steady_clock::now();
-        model_->simulateFixingPaths(expiry, {}, settings);
+        model_->simulateFixingPaths(expiry, simDates, settings);
         const auto t1 = std::chrono::steady_clock::now();
 
         SimulateResult out;
@@ -504,10 +517,11 @@ public:
     SimulateResult simulate_paths_near_years(const double horizon_years, const Size mc_samples,
                                              const BigNatural seed, const std::string& dynamics,
                                              const std::vector<std::string>& save_fixing_dates,
-                                             const Size lsv_bins, const Size path_workers) {
+                                             const Size lsv_bins, const Size path_workers,
+                                             const std::vector<std::string>& extra_dates) {
         const Date expiry = expiryNearYears(*market_data_, horizon_years);
         return simulate_paths(formatIsoDate(expiry), mc_samples, seed, dynamics,
-                              save_fixing_dates, lsv_bins, path_workers);
+                              save_fixing_dates, lsv_bins, path_workers, extra_dates);
     }
 
     struct MarketSummary {
@@ -656,6 +670,25 @@ public:
                                              market_data_->today(), market_data_->calendar()));
         }
 
+        // Fail fast if a required fixing is beyond the simulated horizon or was
+        // dropped by a restricted save_fixing_dates bank.
+        for (const ParsedOptionSpec& p : parsed) {
+            if (!bank.hasFixingDate(p.params.expiry)) {
+                throw std::runtime_error(
+                    "price_all: expiry " + formatIsoDate(p.params.expiry) + " for '" + p.id +
+                    "' is not on the save path; extend the simulate_paths horizon "
+                    "(or pass save_fixing_dates / extra_dates if the bank was restricted)");
+            }
+            for (const Date& d : p.params.observationDates) {
+                if (!bank.hasFixingDate(d)) {
+                    throw std::runtime_error(
+                        "price_all: observation " + formatIsoDate(d) + " for '" + p.id +
+                        "' is not on the save path; extend the simulate_paths horizon "
+                        "(or pass save_fixing_dates / extra_dates if the bank was restricted)");
+                }
+            }
+        }
+
         std::vector<PricedOptionResult> results(parsed.size());
 
         py::gil_scoped_release release;
@@ -723,6 +756,16 @@ public:
                                              market_data_->today(), market_data_->calendar()));
         }
 
+        // Every calendar day to the horizon (ACT/365). Spec expiries / explicit
+        // observation dates are unioned for clarity; they already lie on that grid.
+        std::vector<Date> simDates =
+            buehlerMcSimulationDatesEveryNCalendarDays(*model_, expiry);
+        for (const ParsedOptionSpec& p : parsed) {
+            simDates.push_back(p.params.expiry);
+            simDates.insert(simDates.end(), p.params.observationDates.begin(),
+                            p.params.observationDates.end());
+        }
+
         std::vector<McSubbankAccumulator> accumulators(parsed.size());
         std::vector<std::string> failure(parsed.size());
         const BuehlerModel& model = *model_;
@@ -732,7 +775,7 @@ public:
         for (Size subbank = 0; subbank < nSubbanks; ++subbank) {
             // Same seed spacing as the C++ verify grids; sub-bank streams stay disjoint.
             settings.seed = seed + static_cast<BigNatural>(subbank) * 1000003ULL;
-            model_->simulateFixingPaths(expiry, {}, settings);
+            model_->simulateFixingPaths(expiry, simDates, settings);
             const BuehlerFixingSavePath& bank = model_->fixingSavePath();
 
 #if defined(_OPENMP)
@@ -772,13 +815,13 @@ public:
         return results;
     }
 
-    /** Same Business/252 rule as option specs (@c dateFromBusiness252YearFraction). */
+    /** Same ACT/365 rule as option specs (@c dateFromAct365YearFraction). */
     std::string resolve_expiry_years(const double years) const {
         if (years <= 0.0) {
             throw std::invalid_argument("expiry_years must be positive");
         }
         return formatIsoDate(
-            dateFromBusiness252YearFraction(market_data_->today(), years, market_data_->calendar()));
+            dateFromAct365YearFraction(market_data_->today(), years, market_data_->calendar()));
     }
 
     std::string today() const { return formatIsoDate(model_->today()); }
@@ -830,11 +873,19 @@ PYBIND11_MODULE(pricing_engine, m) {
         .def("passed", &BuehlerCalibrationValidationReport::passed);
 
     py::class_<BuehlerImpliedVolXArbitrageReport>(m, "ArbitrageReport")
+        .def_readonly("n_samples_butterfly", &BuehlerImpliedVolXArbitrageReport::nSamplesButterfly)
+        .def_readonly("n_samples_calendar", &BuehlerImpliedVolXArbitrageReport::nSamplesCalendar)
         .def_readonly("violations_butterfly",
                       &BuehlerImpliedVolXArbitrageReport::violationsButterfly)
         .def_readonly("violations_calendar", &BuehlerImpliedVolXArbitrageReport::violationsCalendar)
         .def_readonly("min_butterfly", &BuehlerImpliedVolXArbitrageReport::minButterfly)
         .def_readonly("min_calendar", &BuehlerImpliedVolXArbitrageReport::minCalendar)
+        .def_property_readonly_static(
+            "max_violation_fraction",
+            [](py::object) { return BuehlerImpliedVolXArbitrageReport::kMaxViolationFraction; })
+        .def_property_readonly_static(
+            "min_butterfly_floor",
+            [](py::object) { return BuehlerImpliedVolXArbitrageReport::kMinButterflyFloor; })
         .def("all_passed", &BuehlerImpliedVolXArbitrageReport::allPassed);
 
     py::class_<BuehlerMcPathPricingResult>(m, "McPriceResult")
@@ -934,19 +985,21 @@ PYBIND11_MODULE(pricing_engine, m) {
              },
              py::arg("options") = BuehlerCalibrationValidationOptions{})
         .def("check_static_arbitrage", &PricingContext::check_static_arbitrage,
-             py::arg("n_time_samples") = 32, py::arg("n_strike_samples") = 64,
-             py::arg("tol_butterfly") = -5.0e-4, py::arg("tol_calendar") = -5.0e-4)
+             py::arg("n_time_samples") = 240, py::arg("n_strike_samples") = 100,
+             py::arg("tol_butterfly") = 0.0, py::arg("tol_calendar") = 0.0)
         .def("simulate_paths", &PricingContext::simulate_paths, py::arg("expiry_iso"),
              py::arg("mc_samples") = kDefaultMcSamples, py::arg("seed") = kDefaultMcSeed,
              py::arg("dynamics") = "lsv",
              py::arg("save_fixing_dates") = std::vector<std::string>{},
              py::arg("lsv_bins") = 0, py::arg("path_workers") = 0,
+             py::arg("extra_dates") = std::vector<std::string>{},
              py::call_guard<py::gil_scoped_release>())
         .def("simulate_paths_near_years", &PricingContext::simulate_paths_near_years,
              py::arg("horizon_years"), py::arg("mc_samples") = kDefaultMcSamples,
              py::arg("seed") = kDefaultMcSeed, py::arg("dynamics") = "lsv",
              py::arg("save_fixing_dates") = std::vector<std::string>{},
              py::arg("lsv_bins") = 0, py::arg("path_workers") = 0,
+             py::arg("extra_dates") = std::vector<std::string>{},
              py::call_guard<py::gil_scoped_release>())
         .def("market_summary", &PricingContext::market_summary)
         .def("price_european_fd", &PricingContext::price_european_fd, py::arg("expiry_iso"),

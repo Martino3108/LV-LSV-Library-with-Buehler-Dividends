@@ -10,9 +10,10 @@ overview:
     Two JSON files: market_snapshot.json (curves, vol, dividends) and
     options_book.json (list of option specs). C++ reads in-memory tables only; no CSV.
     Strikes and barriers: use *_fraction_of_spot (K/S) or absolute levels in S.
-    Dates: ISO strings YYYY-MM-DD; calendar TARGET (business days).
-    Year fractions use Business/252 exclusively: date = asof + round(252*T)
-    TARGET business days (Following).
+    Dates: ISO strings YYYY-MM-DD. Year fractions use ACT/365 exclusively:
+    date = asof + round(365*T) calendar days (inverse: T = calendar days / 365,
+    Actual365Fixed). Affine A(t)/D(t), Dupire dense time, and MC evolution all use
+    calendar days. No holiday calendar (QuantLib NullCalendar on MarketData).
   pricing:
     entry_point: price_all(specs) after simulate_paths
     routing: Each row is dispatched by product (case-insensitive).
@@ -33,22 +34,22 @@ market_snapshot:
     rfr_tenor_years:
       type: array[number]
       description: >
-        Risk-free curve pillar times as Business/252 year fractions from asof
-        (resolved via round(252*T) TARGET business days).
+        Risk-free curve pillar times as ACT/365 year fractions from asof
+        (resolved via round(365*T) calendar days).
     rfr_zero_rates:
       type: array[number]
       description: Continuously compounded zero rates; same length as rfr_tenor_years.
     repo_tenor_years:
       type: array[number]
       description: >
-        Repo/funding curve pillar times as Business/252 year fractions from asof.
+        Repo/funding curve pillar times as ACT/365 year fractions from asof.
     repo_zero_rates:
       type: array[number]
       description: Repo zero rates; same length as repo_tenor_years.
     vol_tenor_years:
       type: array[number]
       description: >
-        Vol surface tenors as Business/252 year fractions from asof (long format:
+        Vol surface tenors as ACT/365 year fractions from asof (long format:
         one entry per (tenor, strike) pair; repeat tenor for each strike on that smile).
     vol_strikes:
       type: array[number]
@@ -123,15 +124,16 @@ common_fields:
     type: string
     format: YYYY-MM-DD
     description: >
-      Payoff / contract end date. Must be on the MC save path (after simulate_paths).
+      Payoff / contract end date. Must be on or before the simulate_paths horizon;
+      the MC path steps every calendar day, so weekend/holiday expiries are covered.
       For digital_accrual with explicit observation_dates, expiry is still required but
       only drives the default monitoring schedule when observation_dates is omitted.
   expiry_years:
     required: expiry or expiry_years (mutually exclusive)
     type: number
     description: >
-      Business/252 year fraction from asof (e.g. 4.0). Resolved as
-      asof + round(252 * T) TARGET business days (Following). The resolved
+      ACT/365 year fraction from asof (e.g. 4.0). Resolved as
+      asof + round(365 * T) calendar days. The resolved
       date must be on the MC save path, so the simulate_paths horizon must cover it.
 
 field_reference:
@@ -186,12 +188,13 @@ monitoring_dates:
   format: YYYY-MM-DD per entry
   applies_to: [asian, barrier, lookback, autocall, digital_accrual]
   default_if_omitted: >
-    Monthly TARGET Following from asof: asof+1M, +2M, … while date ≤ expiry; expiry is
+    Pure calendar months from asof: asof+1M, +2M, … while date ≤ expiry; expiry is
     appended if not already the last date (resolveMcObservationDates).
   not_used_by: [european, digital]
   constraints: >
-    Each date must be strictly after asof and on the MC save path (daily TARGET business
-    days to simulate_paths horizon). For daily monitoring set observation_frequency: daily,
+    Each date must be strictly after asof and on or before the simulate_paths horizon.
+    Under ACT/365, explicit ISO dates may fall on weekends/holidays; the daily calendar
+    MC path already includes them. For daily monitoring set observation_frequency: daily,
     or pass an explicit ISO list; omit both for the monthly default.
   observation_frequency:
     type: string
@@ -200,11 +203,11 @@ monitoring_dates:
     description: >
       Default monitoring schedule when observation_dates is omitted. monthly = historical
       default (see default_if_omitted); daily = every date stored on the MC save path up to
-      expiry (all simulated TARGET business days when mcSavePathFixingDates is not restricted).
+      expiry (every calendar day when mcSavePathFixingDates is not restricted).
       Mutually exclusive with observation_dates.
   mc_path_simulation: >
-    simulate_paths stores S on every TARGET business day; products read spot only on
-    observation_dates (monthly by default), not on every simulated day.
+    simulate_paths evolves on every calendar day to the horizon (ACT/365-aligned).
+    Products read spot on observation_dates (monthly calendar +1M by default).
 
 discounting:
   description: >

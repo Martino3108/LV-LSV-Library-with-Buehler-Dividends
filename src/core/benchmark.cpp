@@ -90,13 +90,13 @@ void benchmark_asian_fast_seed_sweep(MarketData& md,
     constexpr BigNatural kSeedOffsetFastN = 2'000'000'000ULL;
 
     const Date horizonMax =
-        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(kHorizonYears), md.calendar());
+        dateFromAct365YearFraction(md.today(), static_cast<Real>(kHorizonYears), md.calendar());
 
     BuehlerModel model(md);
     model.preprocessing();
     model.calibration(/*runValidation=*/true);
     const Date expiry =
-        dateFromBusiness252YearFraction(md.today(), static_cast<Real>(kOptionMaturityYears),
+        dateFromAct365YearFraction(md.today(), static_cast<Real>(kOptionMaturityYears),
                                         md.calendar());
     const Real strikeF = model.forward0T(expiry);
 
@@ -115,7 +115,7 @@ void benchmark_asian_fast_seed_sweep(MarketData& md,
         out.reserve(60);
         Date d = md.today();
         while (true) {
-            d = md.calendar().advance(d, 1, Months, Following);
+            d = d + Period(1, Months); // pure calendar month
             if (d > expiryDate)
                 break;
             if (bank.hasFixingDate(d))

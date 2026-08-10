@@ -12,8 +12,8 @@
 
 class BuehlerModel;
 
-/** @brief Monthly calendar-month @c Following grid from today through @p expiry
- *  (appends @p expiry if needed). Monitoring frequency, not a Business/252 tenor map. */
+/** @brief Monthly calendar-month grid from today through @p expiry (no business-day
+ *  adjustment; appends @p expiry if needed). Monitoring frequency, not the ACT/365 tenor map. */
 std::vector<QuantLib::Date> mcObservationDatesMonthlyThroughExpiry(const BuehlerModel& buehler,
                                                                      const QuantLib::Date& expiry);
 
@@ -32,7 +32,7 @@ std::vector<QuantLib::Date> bankFixingsLastDatePerYear(
 /**
  * @brief Observation dates for MC monitoring.
  * Uses @c params.observationDates when non-empty; otherwise falls back per
- * @c params.observationFrequency: monthly @c Following through @c params.expiry (default),
+ * @c params.observationFrequency: monthly calendar-month grid through @c params.expiry (default),
  * or every save-path fixing up to @c params.expiry (daily; requires a simulated bank).
  */
 std::vector<QuantLib::Date> resolveMcObservationDates(const BuehlerModel& buehler,

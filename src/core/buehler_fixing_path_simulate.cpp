@@ -14,21 +14,20 @@
 #include <cmath>
 #include <iostream>
 
-std::vector<QuantLib::Date> buehlerMcSimulationDatesEveryNBusinessDays(
+std::vector<QuantLib::Date> buehlerMcSimulationDatesEveryNCalendarDays(
     const BuehlerModel& buehler,
     const QuantLib::Date& horizonMax,
-    const int businessDayStep) {
+    const int calendarDayStep) {
     using namespace QuantLib;
-    QL_REQUIRE(businessDayStep > 0,
-               "buehlerMcSimulationDatesEveryNBusinessDays: businessDayStep must be positive");
+    QL_REQUIRE(calendarDayStep > 0,
+               "buehlerMcSimulationDatesEveryNCalendarDays: calendarDayStep must be positive");
     QL_REQUIRE(horizonMax > buehler.today(),
-               "buehlerMcSimulationDatesEveryNBusinessDays: horizonMax must be after today");
+               "buehlerMcSimulationDatesEveryNCalendarDays: horizonMax must be after today");
 
     std::vector<Date> dates;
     Date d = buehler.today();
-    const Calendar& cal = buehler.calendar();
     while (true) {
-        d = cal.advance(d, businessDayStep, Days, Following);
+        d += calendarDayStep;
         if (d > horizonMax)
             break;
         dates.push_back(d);
@@ -36,7 +35,7 @@ std::vector<QuantLib::Date> buehlerMcSimulationDatesEveryNBusinessDays(
     if (dates.empty() || dates.back() != horizonMax)
         dates.push_back(horizonMax);
     QL_REQUIRE(dates.size() >= 1,
-               "buehlerMcSimulationDatesEveryNBusinessDays: empty simulation schedule");
+               "buehlerMcSimulationDatesEveryNCalendarDays: empty simulation schedule");
     return dates;
 }
 

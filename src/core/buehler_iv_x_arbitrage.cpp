@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <vector>
 #include <ql/pricingengines/blackformula.hpp>
 #include <ql/quantlib.hpp>
@@ -30,7 +31,7 @@ QuantLib::Real normalizedCallPureX(const QuantLib::Handle<QuantLib::BlackVolTerm
 }
 
 QuantLib::Date dateFromYearFraction(const BuehlerModel& b, QuantLib::Time T) {
-    return dateFromBusiness252YearFraction(b.today(), T, b.calendar());
+    return dateFromAct365YearFraction(b.today(), T, b.calendar());
 }
 
 } // namespace
@@ -54,11 +55,18 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
     const Real xMax = *std::max_element(kxGrid.begin(), kxGrid.end());
     QL_REQUIRE(xMax > xMin && std::isfinite(xMin) && std::isfinite(xMax),
                "Buehler implied-vol X arbitrage: invalid strike range");
-    // Align strike tests with the fixed-LV tabulation: only kx >= left dense node (post synthetic trim).
+    // Align strike tests with the fixed-LV tabulation: only the synthetic band
+    // [max_T kx(K_min), min_T kx(K_max)] after crop.
     const Real kxTabLo =
         buehler.denseXStrikes().empty() ? xMin : buehler.denseXStrikes().front();
-    const bool restrictKx = (kxTabLo > 1.0e-10 && kxTabLo <= xMax);
-    const Real xEffMin = restrictKx ? std::max(xMin, kxTabLo) : xMin;
+    const Real kxTabHi =
+        buehler.denseXStrikes().empty() ? xMax : buehler.denseXStrikes().back();
+    const bool restrictKxLo = (kxTabLo > 1.0e-10 && kxTabLo <= xMax);
+    const bool restrictKxHi = (kxTabHi < QL_MAX_REAL && kxTabHi >= xMin);
+    const Real xEffMin = restrictKxLo ? std::max(xMin, kxTabLo) : xMin;
+    const Real xEffMax = restrictKxHi ? std::min(xMax, kxTabHi) : xMax;
+    QL_REQUIRE(xEffMax > xEffMin,
+               "Buehler implied-vol X arbitrage: empty strike range after LV tab crop");
 
     const Time tMin = dc.yearFraction(ref, expiries.front());
     const Time tMax = dc.yearFraction(ref, expiries.back());
@@ -84,7 +92,7 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
         std::vector<Real> xs;
         xs.reserve(nStrikeSamples);
         const Real lo = xEffMin * (1.0 + margin);
-        const Real hi = xMax * (1.0 - margin);
+        const Real hi = xEffMax * (1.0 - margin);
         QL_REQUIRE(hi > lo, "Buehler implied-vol X arbitrage: empty strike interior after margin");
         for (Size i = 0; i < nStrikeSamples; ++i) {
             const double w = (nStrikeSamples <= 1)
@@ -104,12 +112,12 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
     if (verbose) {
         std::cout << std::fixed << std::setprecision(6);
         std::cout << "\n=== Buehler implied vol X: static arbitrage (butterfly + calendar) ===\n";
-        if (restrictKx) {
-            std::cout << "X strike samples restricted to kx >= " << kxTabLo
-                      << " (matches dense fixed-LV kx tab left edge; bicubic grid min was " << xMin
-                      << ")\n";
+        if (restrictKxLo || restrictKxHi) {
+            std::cout << "X strike samples restricted to kx in [" << xEffMin << ", " << xEffMax
+                      << "] (matches dense fixed-LV kx tab after synthetic crop; bicubic grid was ["
+                      << xMin << ", " << xMax << "])\n";
         }
-        std::cout << "X range used [" << xEffMin << ", " << xMax << "] | T range [" << tLo << ", "
+        std::cout << "X range used [" << xEffMin << ", " << xEffMax << "] | T range [" << tLo << ", "
                   << tHi << "] yr\n";
     }
 
@@ -120,11 +128,13 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
         if (tAct <= 1.0e-12) {
             continue;
         }
-        const double kHardLo = restrictKx ? benchmarkToDouble(kxTabLo) : 0.0;
+        const double kHardLo = restrictKxLo ? benchmarkToDouble(kxTabLo) : 0.0;
+        const double kHardHi =
+            restrictKxHi ? benchmarkToDouble(kxTabHi) : std::numeric_limits<double>::infinity();
         for (const auto& kRaw : strikeGrid) {
             const double k = benchmarkToDouble(kRaw);
             const double h = std::max(benchmarkToDouble(relHx) * k, 1.0e-6);
-            if (k - h <= kHardLo) {
+            if (k - h <= kHardLo || k + h >= kHardHi) {
                 continue;
             }
             const Real cm = normalizedCallPureX(volTs, ref, dc, expiry, static_cast<Real>(k - h));
@@ -193,6 +203,10 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
                   << " calendar=" << rep.violationsCalendar << "\n";
         std::cout << "Worst: min d2xxC=" << rep.minButterfly << " min dT_C=" << rep.minCalendar
                   << "\n";
+        std::cout << "Gate: fail if violations > "
+                  << (100.0 * BuehlerImpliedVolXArbitrageReport::kMaxViolationFraction)
+                  << "% of samples or minButterfly < "
+                  << BuehlerImpliedVolXArbitrageReport::kMinButterflyFloor << "\n";
         std::cout << "Overall: " << (rep.allPassed() ? "PASS" : "FAIL") << "\n";
     }
 

@@ -107,6 +107,10 @@ public:
     const QuantLib::Calendar& calendar() const { return calendar_; }
     const QuantLib::DayCounter& dayCounter() const { return dayCounter_; }
 
+    /**
+     * @brief Calendar-day nodes used for the affine map A(t), D(t) after @c preprocessing()
+     * (every calendar day from today through maturity; ACT/365-aligned).
+     */
     const std::vector<QuantLib::Date>& businessDates() const { return businessDates_; }
     const std::vector<QuantLib::Real>& forwards0T() const { return forwards0T_; }
     const std::vector<QuantLib::Real>& dividends0T() const { return dividends0T_; }
@@ -170,8 +174,9 @@ public:
 
     /**
      * @brief Simulate fixing bank up to @p horizonMax.
-     * @param horizonMax Last simulation date (inclusive business-day grid to this date).
-     * @param simulationDates Empty → every business day to horizon. Cleared by @c calibration().
+     * @param horizonMax Last simulation date (inclusive).
+     * @param simulationDates Empty → every calendar day to horizon (ACT/365), then unioned with
+     *        @c settings.mcSavePathFixingDates. Cleared by @c calibration().
      * @param settings MC dynamics, samples, fast path, LSV bins, etc.
      */
     void simulateFixingPaths(const QuantLib::Date& horizonMax,
@@ -204,10 +209,18 @@ public:
     const QuantLib::Matrix& preBicubicImpliedVolsX() const { return preBicubicImpliedVolsX_; }
 
     /**
-     * @brief Lower kx bound used for LV calibration (injected K_min node).
+     * @brief Lower kx bound used for LV calibration (injected K_min node,
+     * \(\max_T k_x(K_{\min},T)\)).
      * Valid after @c calibration(); pillars with kx below this are excluded from fit.
      */
     QuantLib::Real calibrationMinKx() const;
+
+    /**
+     * @brief Upper kx bound used for LV calibration (injected K_max node,
+     * \(\min_T k_x(K_{\max},T)\)).
+     * Valid after @c calibration(); pillars with kx above this are excluded from fit.
+     */
+    QuantLib::Real calibrationMaxKx() const;
 
 private:
     QuantLib::Real interpolateByDate(const std::vector<QuantLib::Real>& values,
@@ -253,6 +266,7 @@ private:
     std::vector<QuantLib::Real> preBicubicImpliedVolXKxGrid_;
     QuantLib::Matrix preBicubicImpliedVolsX_;
     QuantLib::Real calibrationMinKx_ = QuantLib::Null<QuantLib::Real>();
+    QuantLib::Real calibrationMaxKx_ = QuantLib::Null<QuantLib::Real>();
 
     std::optional<BuehlerFixingSavePath> fixingSavePath_;
     QuantLib::Date fixingPathHorizonMax_;

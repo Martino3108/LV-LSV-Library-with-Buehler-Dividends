@@ -16,10 +16,11 @@ std::vector<QuantLib::Date> normalizeSimulationDates(const BuehlerModel& buehler
                                                      std::vector<QuantLib::Date> dates,
                                                      const QuantLib::Date& horizonMax);
 
-std::vector<QuantLib::Date> buehlerMcSimulationDatesEveryNBusinessDays(
+/** @brief Every @p calendarDayStep calendar days from today through @p horizonMax (ACT/365). */
+std::vector<QuantLib::Date> buehlerMcSimulationDatesEveryNCalendarDays(
     const BuehlerModel& buehler,
     const QuantLib::Date& horizonMax,
-    int businessDayStep = kDefaultMcBusinessDayStep);
+    int calendarDayStep = kDefaultMcCalendarDayStep);
 
 /** @brief Resolve stored fixings; @p requestedSaveDates empty → all @p evolutionDates. */
 std::vector<QuantLib::Date> resolveMcSavePathFixingDates(

@@ -9,7 +9,7 @@
  * - @b phoenix: @f$c@f$ paid at every observation date; notional at redemption.
  * - @b athena: accrued coupons plus notional paid in one lump sum at redemption.
  * Monitoring on @c params.observationDates; if empty, falls back per
- * @c params.observationFrequency (monthly @c Following schedule through @c params.expiry,
+ * @c params.observationFrequency (monthly calendar-month schedule through @c params.expiry,
  * or every save-path fixing when daily).
  */
 

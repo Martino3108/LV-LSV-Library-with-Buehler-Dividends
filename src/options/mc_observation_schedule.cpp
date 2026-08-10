@@ -27,7 +27,7 @@ std::vector<Date> mcObservationDatesMonthlyThroughExpiry(const BuehlerModel& bue
     std::vector<Date> dates;
     Date d = buehler.today();
     while (true) {
-        d = buehler.calendar().advance(d, 1, Months, Following);
+        d = d + Period(1, Months); // pure calendar month
         if (d > expiry)
             break;
         dates.push_back(d);

@@ -551,7 +551,7 @@ std::vector<QuantLib::Date> monthlyObservationDates(const MarketData& md,
     std::vector<Date> dates;
     Date d = md.today();
     while (true) {
-        d = md.calendar().advance(d, 1, Months, Following);
+        d = d + Period(1, Months); // pure calendar month
         if (d > horizon)
             break;
         dates.push_back(d);

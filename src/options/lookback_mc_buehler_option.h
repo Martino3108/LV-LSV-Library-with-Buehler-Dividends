@@ -4,7 +4,7 @@
  *
  * Running maximum and minimum of @c sLevel on the observation schedule, market-standard
  * payoffs. Set @c params.observationDates explicitly, or leave empty for the
- * @c params.observationFrequency fallback (monthly @c Following grid through
+ * @c params.observationFrequency fallback (monthly calendar-month grid through
  * @c params.expiry, or every save-path fixing when daily).
  * Fixed strike: call @f$\max(0, \max S - K_S)@f$ on the maximum, put
  * @f$\max(0, K_S - \min S)@f$ on the minimum.

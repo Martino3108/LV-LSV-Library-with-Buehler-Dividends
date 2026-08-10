@@ -15,7 +15,8 @@
 
 constexpr QuantLib::Size kDefaultMcSamples = 100000;
 constexpr QuantLib::Size kDefaultMcPathWorkers = 6;
-constexpr int kDefaultMcBusinessDayStep = 1;
+/** @brief Default MC evolution step in calendar days (ACT/365 quote clock). */
+constexpr int kDefaultMcCalendarDayStep = 1;
 /** @brief Default OpenMP spin-before-sleep window (ms) applied when KMP_BLOCKTIME is unset. */
 constexpr int kDefaultMcBlockTimeMs = 50;
 constexpr QuantLib::BigNatural kDefaultMcSeed = 42;
@@ -67,7 +68,8 @@ struct BuehlerMcSettings {
     QuantLib::Size lsvPathChunkSamples = 0;
     /**
      * @brief Dates stored in the fixing bank after simulation.
-     * Empty = store every evolution date (default). Otherwise must be a subset of the evolution grid.
+     * Empty = store every evolution date (default). Otherwise a subset of the evolution
+     * grid (default evolution is every calendar day to the horizon).
      */
     std::vector<QuantLib::Date> mcSavePathFixingDates;
     /**

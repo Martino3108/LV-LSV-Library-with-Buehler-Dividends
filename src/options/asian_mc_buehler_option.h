@@ -4,7 +4,7 @@
  *
  * Payoffs use @c sLevel on the save path; returns @f$C_S = P(T)\,\mathbb{E}[\mathrm{payoff}_S]@f$.
  * Contract @c params.strike is @f$K_S@f$. Monitoring on @c params.observationDates; if empty,
- * falls back per @c params.observationFrequency (monthly @c Following schedule through
+ * falls back per @c params.observationFrequency (monthly calendar-month schedule through
  * @c params.expiry, or every save-path fixing when daily).
  */
 

@@ -5,7 +5,7 @@
 
 #include "market_data.h"
 #include "ql/math/interpolations/cubicinterpolation.hpp"
-#include <ql/time/daycounters/business252.hpp>
+#include <ql/time/daycounters/actual365fixed.hpp>
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -55,8 +55,8 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     }
     QL_REQUIRE(!tables.volTenorYears.empty(), "MarketDataTables: vol surface is empty");
 
-    calendar_ = TARGET();
-    dayCounter_ = Business252(calendar_);  // unique YF convention (see dateFromBusiness252YearFraction)
+    calendar_ = NullCalendar();  // civil-day engine; no holiday calendar
+    dayCounter_ = Actual365Fixed();  // unique YF convention (see dateFromAct365YearFraction)
     today_ = parseIsoDate(tables.asof);
     spotValue_ = tables.spot;
 
@@ -66,7 +66,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     riskFreeZeroRates_.reserve(tables.rfrZeroRates.size());
     for (Size i = 0; i < tables.rfrTenorYears.size(); ++i) {
         riskFreeDates_.push_back(
-            dateFromBusiness252YearFraction(today_, tables.rfrTenorYears[i], calendar_));
+            dateFromAct365YearFraction(today_, tables.rfrTenorYears[i], calendar_));
         riskFreeZeroRates_.push_back(tables.rfrZeroRates[i]);
     }
     QL_REQUIRE(!riskFreeDates_.empty(), "MarketDataTables: risk-free curve is empty");
@@ -77,7 +77,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     repoZeroRates_.reserve(tables.repoZeroRates.size());
     for (Size i = 0; i < tables.repoTenorYears.size(); ++i) {
         repoDates_.push_back(
-            dateFromBusiness252YearFraction(today_, tables.repoTenorYears[i], calendar_));
+            dateFromAct365YearFraction(today_, tables.repoTenorYears[i], calendar_));
         repoZeroRates_.push_back(tables.repoZeroRates[i]);
     }
     QL_REQUIRE(!repoDates_.empty(), "MarketDataTables: repo curve is empty");
@@ -108,7 +108,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
     strikes_ = std::move(volStrikes);
     expiries_.clear();
     for (Real t : maturityYears) {
-        expiries_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
+        expiries_.push_back(dateFromAct365YearFraction(today_, t, calendar_));
     }
 
     marketHorizon_ = today_;
@@ -187,8 +187,8 @@ void MarketData::loadSampleMarketSnapshot() {
     // Sample market snapshot (spot, smile, curves, discrete dividends).
     using namespace QuantLib;
 
-    calendar_   = TARGET();
-    dayCounter_ = Business252(calendar_);  // unique YF convention (see dateFromBusiness252YearFraction)
+    calendar_   = NullCalendar();  // civil-day engine; no holiday calendar
+    dayCounter_ = Actual365Fixed();  // unique YF convention (see dateFromAct365YearFraction)
     today_      = Date(1, December, 2025);
 
     spotValue_ = 8097.0;
@@ -203,7 +203,7 @@ void MarketData::loadSampleMarketSnapshot() {
     expiries_.clear();
     expiries_.reserve(volTenorsYears.size());
     for (const Time t : volTenorsYears) {
-        expiries_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
+        expiries_.push_back(dateFromAct365YearFraction(today_, t, calendar_));
     }
 
     const std::vector<Real> strikeMultipliers = {
@@ -231,10 +231,10 @@ void MarketData::loadSampleMarketSnapshot() {
     riskFreeDates_.push_back(today_);
     repoDates_.push_back(today_);
     for (const Time t : rfrTenorsYears) {
-        riskFreeDates_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
+        riskFreeDates_.push_back(dateFromAct365YearFraction(today_, t, calendar_));
     }
     for (const Time t : repoTenorsYears) {
-        repoDates_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
+        repoDates_.push_back(dateFromAct365YearFraction(today_, t, calendar_));
     }
 
     const std::vector<Rate> rfrValues = {
@@ -293,7 +293,7 @@ void MarketData::loadSampleMarketSnapshot() {
         }
     }
 
-    // Five annual discrete cash dividends at Business/252 1Y..5Y.
+    // Five annual discrete cash dividends at ACT/365 1Y..5Y.
     const std::vector<Real> dividendValues = {
         343.425, 228.9458, 223.6222, 225.3806, 210.553
     };
@@ -305,7 +305,7 @@ void MarketData::loadSampleMarketSnapshot() {
     dividendProportional_.reserve(dividendValues.size());
     for (Size i = 0; i < dividendValues.size(); ++i) {
         const Date exDate =
-            dateFromBusiness252YearFraction(today_, static_cast<Real>(i + 1), calendar_);
+            dateFromAct365YearFraction(today_, static_cast<Real>(i + 1), calendar_);
         if (exDate <= today_) {
             continue;
         }
@@ -323,8 +323,8 @@ void MarketData::loadConstantMock() {
     // Flat Black–Scholes dataset; grid shape matches loadSampleMarketSnapshot().
     using namespace QuantLib;
 
-    calendar_   = TARGET();
-    dayCounter_ = Business252(calendar_);  // unique YF convention (see dateFromBusiness252YearFraction)
+    calendar_   = NullCalendar();  // civil-day engine; no holiday calendar
+    dayCounter_ = Actual365Fixed();  // unique YF convention (see dateFromAct365YearFraction)
     today_      = Date(1, December, 2025);
 
     spotValue_ = 100.0;
@@ -333,7 +333,7 @@ void MarketData::loadConstantMock() {
     bergomiNu_  = 1.0;
     bergomiRho_ = -0.7;
 
-    // Same grid cardinality as loadSampleMarketSnapshot; tenors as Business/252 YF (months/12).
+    // Same grid cardinality as loadSampleMarketSnapshot; tenors as ACT/365 YF (months/12).
     const std::vector<Time> mockTenorYears = {
         1.0 / 12.0, 2.0 / 12.0, 3.0 / 12.0, 6.0 / 12.0, 9.0 / 12.0, 1.0,
         1.5, 2.0, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0
@@ -341,7 +341,7 @@ void MarketData::loadConstantMock() {
     expiries_.clear();
     expiries_.reserve(mockTenorYears.size());
     for (const Time t : mockTenorYears) {
-        expiries_.push_back(dateFromBusiness252YearFraction(today_, t, calendar_));
+        expiries_.push_back(dateFromAct365YearFraction(today_, t, calendar_));
     }
     strikes_ = {
         50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0,
