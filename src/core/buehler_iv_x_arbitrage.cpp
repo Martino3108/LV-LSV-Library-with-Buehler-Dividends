@@ -45,12 +45,12 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
     bool verbose) {
     using namespace QuantLib;
     BuehlerImpliedVolXArbitrageReport rep;
-    const Handle<BlackVolTermStructure> volTs = buehler.impliedVolXBicubicTs();
-    QL_REQUIRE(!volTs.empty(), "BuehlerModel: impliedVolXBicubicTs empty; call calibration() first");
+    const Handle<BlackVolTermStructure> volTs = buehler.impliedVolXTs();
+    QL_REQUIRE(!volTs.empty(), "BuehlerModel: impliedVolXTs empty; call calibration() first");
     const Date& ref = buehler.today();
     const DayCounter& dc = buehler.dayCounter();
-    const auto& expiries = buehler.preBicubicImpliedVolXExpiries();
-    const auto& kxGrid = buehler.preBicubicImpliedVolXKxGrid();
+    const auto& expiries = buehler.nodalImpliedVolXExpiries();
+    const auto& kxGrid = buehler.nodalImpliedVolXKxGrid();
     const Real xMin = *std::min_element(kxGrid.begin(), kxGrid.end());
     const Real xMax = *std::max_element(kxGrid.begin(), kxGrid.end());
     QL_REQUIRE(xMax > xMin && std::isfinite(xMin) && std::isfinite(xMax),
@@ -114,7 +114,7 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
         std::cout << "\n=== Buehler implied vol X: static arbitrage (butterfly + calendar) ===\n";
         if (restrictKxLo || restrictKxHi) {
             std::cout << "X strike samples restricted to kx in [" << xEffMin << ", " << xEffMax
-                      << "] (matches dense fixed-LV kx tab after synthetic crop; bicubic grid was ["
+                      << "] (matches dense fixed-LV kx tab after synthetic crop; nodal σ_X grid was ["
                       << xMin << ", " << xMax << "])\n";
         }
         std::cout << "X range used [" << xEffMin << ", " << xEffMax << "] | T range [" << tLo << ", "

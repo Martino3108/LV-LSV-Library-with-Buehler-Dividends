@@ -28,7 +28,7 @@ with X(0) = 1, F the forward and D the discounted value of future cash dividends
 
 Both dynamics live on the Buehler pure coordinate X (see above). The implementation offers two layers on top of the same calibrated smile.
 
-Local volatility is how the engine reproduces today's market. You load a Black implied-vol grid in S; preprocessing maps it to implied vol in X, smooths it into a bicubic surface, and runs Dupire on a dense (T, k_x) grid to obtain a fixed local vol σ_LV(t, x).
+Local volatility is how the engine reproduces today's market. You load a Black implied-vol grid in S, preprocessing maps it to implied vol in X (interpolated with linear-in-T / monotonic-cubic-in-K on total variance), and runs Dupire on a dense (T, k_x) grid to obtain a fixed local vol σ_LV(t, x).
 
 Local stochastic volatility: after LV is fixed a one-factor Bergomi-style driver is added on X. The simulator uses the bins technique explained in [van der Stoep, Grzelak & Oosterlee, 2014](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2278122). This project does not focus on the estimation of the stochastic volatility parameters, that could be a natural extension.
 
@@ -47,7 +47,7 @@ MarketData  →  preprocessing  →  calibration (σ_X, σ_LV)
 
 1. `MarketData` — spot, risk-free and repo curves, dividend schedule, implied-vol grid in S (cleaned mids; no bid–ask repair here). Python / JSON: `PricingContext.from_tables(**market)` → `MarketData::loadFromTables()`. C++ showcase: `loadSampleMarketSnapshot()` (hardcoded sample) or `loadConstantMock()` (flat BS regression).
 2. `BuehlerModel::preprocessing()` — affine A(t)/D(t) tabulated on every calendar day to maturity, forwards F(0,T), dividend floor from cash and proportional schedules.
-3. `calibration()` — nodal σ_X → bicubic surface → Dupire σ_LV on a dense front-loaded time grid; `check_static_arbitrage` samples the bicubic σ_X for butterfly and calendar violations.
+3. `calibration()` — nodal σ_X → lin-T/cubic-k_x surface → Dupire σ_LV on a dense front-loaded time grid; `check_static_arbitrage` samples the implied σ_X surface for butterfly and calendar violations.
 4. `simulateFixingPaths` — builds a `BuehlerFixingSavePath` under LV or LSV, evolving every calendar day to the horizon. OpenMP can parallelise the fast LV and LSV evolve (`BUEHLER_MC_OPENMP`).
 
 There is no holiday calendar: `MarketData` uses QuantLib `NullCalendar` (every civil day is valid). Quote clock, Dupire, affine map, MC, and monthly monitoring (`+1 Month`) are all pure calendar / ACT/365.

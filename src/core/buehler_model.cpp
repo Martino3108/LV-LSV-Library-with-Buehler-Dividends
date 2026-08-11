@@ -11,6 +11,7 @@
 #include "lv_european_fd_buehler_option.h"
 #include "market_data.h"
 #include "option.h"
+#include "linear_time_cubic_strike_interpolation.h"
 #include "ql/math/interpolations/cubicinterpolation.hpp"
 #include <ql/pricingengines/blackformula.hpp>
 #include <ql/termstructures/volatility/equityfx/fixedlocalvolsurface.hpp>
@@ -77,7 +78,7 @@ Size nearestMarketExpiryIndex(const std::vector<Date>& marketExpiries, const Dat
     return best;
 }
 
-/** Linear in kx on pre-bicubic implied σ_X (monotonic nodes; avoids bicubic overshoot). */
+/** Linear in kx on nodal implied σ_X (monotonic smile columns). */
 Volatility impliedVolXFromGrid(const Matrix& impliedVolsX,
                                const std::vector<Real>& marketXStrikes,
                                Size expiryCol,
@@ -134,7 +135,7 @@ private:
     Real kTabMin_, kTabMax_;
 };
 
-/** @brief X-implied vol grid, bicubic wrap, Dupire LV → `FixedLocalVolSurface`. */
+/** @brief X-implied vol grid, lin-T/cubic-k wrap, Dupire LV → `FixedLocalVolSurface`. */
 Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     const Date& today,
     const Calendar& calendar,
@@ -149,11 +150,11 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     std::vector<Date>& outDenseExpiries,
     std::vector<Real>& outDenseXStrikes,
     Matrix& outDenseLocalVolX,
-    Matrix* preBicubicImpliedVolsXOut = nullptr,
-    std::vector<Date>* preBicubicExpiriesOut = nullptr,
-    std::vector<Real>* preBicubicXStrikesOut = nullptr,
+    Matrix* nodalImpliedVolsXOut = nullptr,
+    std::vector<Date>* nodalExpiriesOut = nullptr,
+    std::vector<Real>* nodalXStrikesOut = nullptr,
     BuehlerLvDenseRepairCounts* outRepair = nullptr,
-    Handle<BlackVolTermStructure>* impliedVolXBicubicOut = nullptr,
+    Handle<BlackVolTermStructure>* impliedVolXOut = nullptr,
     bool useInjectedMinStrikeKxForSmile = false,
     Real injectedMinStrikeKxForSmile = 0.0,
     bool useInjectedMaxStrikeKxForSmile = false,
@@ -170,7 +171,9 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     QL_REQUIRE(marketXStrikes.front() > 0.0 && std::isfinite(marketXStrikes.front()),
                "Buehler fixed LV: market X strikes must start at a positive finite kx");
 
-    // Implied σ_X: monotonic cubic on kx support; left/right wings linear (full spline slopes). Bicubic in (T,kx).
+    // Implied σ_X: monotonic cubic on kx support; left/right wings linear (full spline slopes).
+    // Query-time Black surface: linear in T on total variance w=σ²T, monotonic cubic in kx
+    // (linear in T on w; monotonic cubic in kx).
     // Optional synthetic abscissae on every smile column: kx = max_T kx(K_min,T) and
     // kx = min_T kx(K_max,T) (common reliable band after the S→X map).
     Matrix impliedVolsX(marketXStrikes.size(), marketExpiries.size());
@@ -286,12 +289,12 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         }
     }
 
-    if (preBicubicImpliedVolsXOut != nullptr) {
-        *preBicubicImpliedVolsXOut = impliedVolsX;
-        if (preBicubicExpiriesOut != nullptr)
-            *preBicubicExpiriesOut = marketExpiries;
-        if (preBicubicXStrikesOut != nullptr)
-            *preBicubicXStrikesOut = marketXStrikes;
+    if (nodalImpliedVolsXOut != nullptr) {
+        *nodalImpliedVolsXOut = impliedVolsX;
+        if (nodalExpiriesOut != nullptr)
+            *nodalExpiriesOut = marketExpiries;
+        if (nodalXStrikesOut != nullptr)
+            *nodalXStrikesOut = marketXStrikes;
     }
 
     auto blackSurfaceX = ext::make_shared<BlackVarianceSurface>(
@@ -300,11 +303,11 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         impliedVolsX, dayCounter,
         BlackVarianceSurface::ConstantExtrapolation,
         BlackVarianceSurface::ConstantExtrapolation);
-    blackSurfaceX->setInterpolation<Bicubic>();
+    blackSurfaceX->setInterpolation<LinearTimeCubicStrike>();
     blackSurfaceX->enableExtrapolation();
     Handle<BlackVolTermStructure> rebuiltPureBlackVolTs(blackSurfaceX);
-    if (impliedVolXBicubicOut != nullptr) {
-        *impliedVolXBicubicOut = rebuiltPureBlackVolTs;
+    if (impliedVolXOut != nullptr) {
+        *impliedVolXOut = rebuiltPureBlackVolTs;
     }
 
     // dense time grid: floor at 1M (avoid Dupire deep in short-end extrapolation).
@@ -336,7 +339,7 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         denseExpiries.push_back(d);
     }
 
-    // dense strike grid: uniform kx on the bicubic abscissa [xLow, xHighRight], then cropped to the
+    // dense strike grid: uniform kx on the common abscissa [xLow, xHighRight], then cropped to the
     // synthetic band [max_T kx(K_min), min_T kx(K_max)] when those nodes are injected.
     const Real xLow = marketXStrikes.front();
     const Real xHighRight = marketXStrikes.back();
@@ -615,12 +618,12 @@ void BuehlerModel::setBergomiParams(const BuehlerBergomiParams& params) {
 void BuehlerModel::preprocessing() {
     using namespace QuantLib;
 
-    preBicubicImpliedVolXExpiries_.clear();
-    preBicubicImpliedVolXKxGrid_.clear();
-    preBicubicImpliedVolsX_ = Matrix();
+    nodalImpliedVolXExpiries_.clear();
+    nodalImpliedVolXKxGrid_.clear();
+    nodalImpliedVolsX_ = Matrix();
     calibrationMinKx_ = Null<Real>();
     calibrationMaxKx_ = Null<Real>();
-    impliedVolXBicubicTs_ = Handle<BlackVolTermStructure>();
+    impliedVolXTs_ = Handle<BlackVolTermStructure>();
 
     QL_REQUIRE(!inputRiskFreeTs_.empty(),  "BuehlerModel requires riskFreeTs");
     QL_REQUIRE(!inputRepoTs_.empty(),      "BuehlerModel requires repoTs");
@@ -724,11 +727,11 @@ void BuehlerModel::calibration(const bool runValidation) {
     fixingSavePath_.reset();
     fixingPathSimulationDates_.clear();
     lastLvDenseRepair_ = BuehlerLvDenseRepairCounts{};
-    impliedVolXBicubicTs_ = Handle<BlackVolTermStructure>();
+    impliedVolXTs_ = Handle<BlackVolTermStructure>();
 
-    // kx band for bicubic: common equispaced axis [segLo, segHi]. Left/right anchored on
+    // kx band for σ_X surface: common equispaced axis [segLo, segHi]. Left/right anchored on
     // min_T kx(K_min,T) and max_T kx(K_max,T). K_min and K_max are excluded from
-    // bicubicMarketKs for the per-column smile; the synthetic nodes
+    // smileMarketKs for the per-column smile; the synthetic nodes
     // max_T kx(K_min,T) and min_T kx(K_max,T) are injected on every smile and define the
     // FixedLocalVol crop (see buildFixedLocalVolFromPureImpliedX).
     const std::vector<Real>& marketKs = inputStrikes_;
@@ -744,25 +747,25 @@ void BuehlerModel::calibration(const bool runValidation) {
         std::distance(marketKs.begin(), std::max_element(marketKs.begin(), marketKs.end())));
     QL_REQUIRE(minStrikeIdx != maxStrikeIdx,
                "Fixed X local-vol: lowest and highest market strikes coincide");
-    std::vector<Real> bicubicMarketKs;
-    bicubicMarketKs.reserve(nKs - 2);
+    std::vector<Real> smileMarketKs;
+    smileMarketKs.reserve(nKs - 2);
     for (Size i = 0; i < nKs; ++i) {
         if (i != minStrikeIdx && i != maxStrikeIdx)
-            bicubicMarketKs.push_back(marketKs[i]);
+            smileMarketKs.push_back(marketKs[i]);
     }
-    QL_REQUIRE(bicubicMarketKs.size() >= 2,
+    QL_REQUIRE(smileMarketKs.size() >= 2,
                "Fixed X local-vol needs at least two strikes after removing the lowest and highest");
-    const Size nKsBic = bicubicMarketKs.size();
+    const Size nSmileKs = smileMarketKs.size();
 
     Real kxGlobalMin = QL_MAX_REAL;
     Real kxGlobalMax = -QL_MAX_REAL;
-    for (Size i = 0; i < nKsBic; ++i) {
+    for (Size i = 0; i < nSmileKs; ++i) {
         for (Size j = 0; j < nExp; ++j) {
             const Real A = interpolateByDate(pureSlopes_,     expiries[j]);
             const Real D = interpolateByDate(pureIntercepts_, expiries[j]);
             if (A <= 0.0)
                 continue;
-            const Real kx = (bicubicMarketKs[i] - D) / A;
+            const Real kx = (smileMarketKs[i] - D) / A;
             if (kx > 0.0 && std::isfinite(kx)) {
                 kxGlobalMin = std::min(kxGlobalMin, kx);
                 kxGlobalMax = std::max(kxGlobalMax, kx);
@@ -786,7 +789,7 @@ void BuehlerModel::calibration(const bool runValidation) {
             kxLeftAnchor = std::min(kxLeftAnchor, kx);
     }
     QL_REQUIRE(kxLeftAnchor < QL_MAX_REAL && std::isfinite(kxLeftAnchor),
-               "No valid kx anchor from lowest market strike for bicubic kx grid");
+               "No valid kx anchor from lowest market strike for σ_X kx grid");
 
     const Real anchorKHi = *std::max_element(marketKs.begin(), marketKs.end());
     Real kxRightAnchor = -QL_MAX_REAL;
@@ -800,14 +803,14 @@ void BuehlerModel::calibration(const bool runValidation) {
             kxRightAnchor = std::max(kxRightAnchor, kx);
     }
     QL_REQUIRE(kxRightAnchor > -QL_MAX_REAL && std::isfinite(kxRightAnchor),
-               "No valid kx anchor from highest market strike for bicubic kx grid");
+               "No valid kx anchor from highest market strike for σ_X kx grid");
 
     const Real segLo = kxLeftAnchor;
     const Real segHi = kxRightAnchor;
     QL_REQUIRE(segHi > segLo && std::isfinite(segLo) && std::isfinite(segHi),
                "Implied-X common kx segment [min kx(K_min), max kx(K_max)] is degenerate");
 
-    const Size nGridX = std::max<Size>(2, nKsBic);
+    const Size nGridX = std::max<Size>(2, nSmileKs);
     std::vector<Real> marketXStrikes;
     marketXStrikes.reserve(nGridX);
     for (Size i = 0; i < nGridX; ++i) {
@@ -822,33 +825,21 @@ void BuehlerModel::calibration(const bool runValidation) {
         affD[j] = interpolateByDate(pureIntercepts_, expiries[j]);
     }
 
-    const Date earliestExpiry = *std::min_element(expiries.begin(), expiries.end());
-    std::vector<Date> bicubicExpiries;
-    std::vector<Real> bicubicAffA, bicubicAffD;
-    bicubicExpiries.reserve(nExp);
-    bicubicAffA.reserve(nExp);
-    bicubicAffD.reserve(nExp);
-    for (Size j = 0; j < nExp; ++j) {
-        // Drop earliest pillar only if T < 3M (avoid too-short noisy maturities).
-        if (expiries[j] == earliestExpiry &&
-            dayCounter_.yearFraction(today_, earliestExpiry) < 0.25)
-            continue;
-        bicubicExpiries.push_back(expiries[j]);
-        bicubicAffA.push_back(affA[j]);
-        bicubicAffD.push_back(affD[j]);
-    }
-    QL_REQUIRE(bicubicExpiries.size() >= 2,
-               "Fixed X local-vol bicubic needs at least two expiries after removing earliest");
-    const std::vector<Real> bicubicXStrikes = marketXStrikes;
+    std::vector<Date> surfaceExpiries = expiries;
+    std::vector<Real> surfaceAffA = affA;
+    std::vector<Real> surfaceAffD = affD;
+    QL_REQUIRE(surfaceExpiries.size() >= 2,
+               "Fixed X local-vol needs at least two market expiries");
+    const std::vector<Real> surfaceXStrikes = marketXStrikes;
 
     // Shared synthetic kx abscissae for smile columns / FixedLocalVol crop:
-    // left  = max over bicubic expiries of kx(K_min),
-    // right = min over bicubic expiries of kx(K_max).
+    // left  = max over surface expiries of kx(K_min),
+    // right = min over surface expiries of kx(K_max).
     Real kxInjectedSmileLo = -QL_MAX_REAL;
     Real kxInjectedSmileHi = QL_MAX_REAL;
-    for (Size j = 0; j < bicubicAffA.size(); ++j) {
-        const Real A = bicubicAffA[j];
-        const Real D = bicubicAffD[j];
+    for (Size j = 0; j < surfaceAffA.size(); ++j) {
+        const Real A = surfaceAffA[j];
+        const Real D = surfaceAffD[j];
         if (A <= 0.0)
             continue;
         const Real kxLo = (anchorKLo - D) / A;
@@ -875,19 +866,19 @@ void BuehlerModel::calibration(const bool runValidation) {
         today_, calendar_, dayCounter_,
         businessDates_.back(),
         pureBlackVolTs_,
-        bicubicExpiries,
-        bicubicXStrikes,
-        bicubicMarketKs,
-        bicubicAffA,
-        bicubicAffD,
+        surfaceExpiries,
+        surfaceXStrikes,
+        smileMarketKs,
+        surfaceAffA,
+        surfaceAffD,
         denseExpiries_,
         denseXStrikes_,
         denseLocalVolXGrid_,
-        &preBicubicImpliedVolsX_,
-        &preBicubicImpliedVolXExpiries_,
-        &preBicubicImpliedVolXKxGrid_,
+        &nodalImpliedVolsX_,
+        &nodalImpliedVolXExpiries_,
+        &nodalImpliedVolXKxGrid_,
         &lastLvDenseRepair_,
-        &impliedVolXBicubicTs_,
+        &impliedVolXTs_,
         true,
         kxInjectedSmileLo,
         true,
@@ -1056,7 +1047,7 @@ BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
     BuehlerCalibrationValidationOptions options) const {
     using namespace QuantLib;
 
-    QL_REQUIRE(!impliedVolXBicubicTs_.empty(),
+    QL_REQUIRE(!impliedVolXTs_.empty(),
                "validate_calibration: call calibration() first");
     QL_REQUIRE(!fixedPureLocalVolTs_.empty(),
                "validate_calibration: call calibration() first");
@@ -1076,7 +1067,7 @@ BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
 
     std::vector<Size> eligibleExpiries;
     eligibleExpiries.reserve(inputExpiries_.size());
-    for (Size j = 1; j < inputExpiries_.size(); ++j) {
+    for (Size j = 0; j < inputExpiries_.size(); ++j) {
         const Time t = dayCounter_.yearFraction(today_, inputExpiries_[j]);
         if (t > 0.0)
             eligibleExpiries.push_back(j);

@@ -93,9 +93,9 @@ public:
     void calibration(bool runValidation = true);
 
     /**
-     * @brief Post-calibration gate: butterfly+calendar static arb on σ_X bicubic, then mean IV fit.
-     * Smile fit uses @c LvEuropeanFdBuehlerOption (FD) on a 3×3 grid: 2nd, middle, and last
-     * market expiries and strikes (earliest pillar/strike skipped). Uses the market snapshot
+     * @brief Post-calibration gate: butterfly+calendar static arb on σ_X, then mean IV fit.
+     * Smile fit uses @c LvEuropeanFdBuehlerOption (FD) on a 3×3 grid: first, middle, and last
+     * eligible market expiries and strikes (t>0, kx in Fixed LV tab). Uses the market snapshot
      * copied at construction. Throws if @p options.throwOnFailure and a check fails.
      * Requires @c preprocessing() and @c calibration() first.
      */
@@ -145,8 +145,8 @@ public:
     const QuantLib::Handle<QuantLib::BlackVolTermStructure>& pureBlackVolTs() const {
         return pureBlackVolTs_;
     }
-    const QuantLib::Handle<QuantLib::BlackVolTermStructure>& impliedVolXBicubicTs() const {
-        return impliedVolXBicubicTs_;
+    const QuantLib::Handle<QuantLib::BlackVolTermStructure>& impliedVolXTs() const {
+        return impliedVolXTs_;
     }
     /** @brief Fixed Dupire LV in X (use for FD / MC). */
     const QuantLib::Handle<QuantLib::LocalVolTermStructure>& fixedPureLocalVolTs() const {
@@ -199,14 +199,14 @@ public:
     const QuantLib::Date& fixingPathHorizonMax() const;
     const std::vector<QuantLib::Date>& fixingPathSimulationDates() const;
 
-    const std::vector<QuantLib::Date>& preBicubicImpliedVolXExpiries() const {
-        return preBicubicImpliedVolXExpiries_;
+    const std::vector<QuantLib::Date>& nodalImpliedVolXExpiries() const {
+        return nodalImpliedVolXExpiries_;
     }
-    const std::vector<QuantLib::Real>& preBicubicImpliedVolXKxGrid() const {
-        return preBicubicImpliedVolXKxGrid_;
+    const std::vector<QuantLib::Real>& nodalImpliedVolXKxGrid() const {
+        return nodalImpliedVolXKxGrid_;
     }
-    /** @brief Nodal σ_X before bicubic, indexed [kx][expiry]. */
-    const QuantLib::Matrix& preBicubicImpliedVolsX() const { return preBicubicImpliedVolsX_; }
+    /** @brief Nodal σ_X before surface wrap, indexed [kx][expiry]. */
+    const QuantLib::Matrix& nodalImpliedVolsX() const { return nodalImpliedVolsX_; }
 
     /**
      * @brief Lower kx bound used for LV calibration (injected K_min node,
@@ -254,7 +254,7 @@ private:
     std::vector<QuantLib::Real> pureIntercepts_;
 
     QuantLib::Handle<QuantLib::BlackVolTermStructure> pureBlackVolTs_;
-    QuantLib::Handle<QuantLib::BlackVolTermStructure> impliedVolXBicubicTs_;
+    QuantLib::Handle<QuantLib::BlackVolTermStructure> impliedVolXTs_;
     QuantLib::Handle<QuantLib::LocalVolTermStructure> fixedPureLocalVolTs_;
     QuantLib::Matrix denseLocalVolXGrid_;
 
@@ -262,9 +262,9 @@ private:
 
     std::optional<BuehlerBergomiParams> bergomiParams_;
 
-    std::vector<QuantLib::Date> preBicubicImpliedVolXExpiries_;
-    std::vector<QuantLib::Real> preBicubicImpliedVolXKxGrid_;
-    QuantLib::Matrix preBicubicImpliedVolsX_;
+    std::vector<QuantLib::Date> nodalImpliedVolXExpiries_;
+    std::vector<QuantLib::Real> nodalImpliedVolXKxGrid_;
+    QuantLib::Matrix nodalImpliedVolsX_;
     QuantLib::Real calibrationMinKx_ = QuantLib::Null<QuantLib::Real>();
     QuantLib::Real calibrationMaxKx_ = QuantLib::Null<QuantLib::Real>();
 

@@ -267,7 +267,7 @@ void verify_LV_BS_consistency(const MarketData& md,
         buehler.denseXStrikes().empty() ? 0.0 : buehler.denseXStrikes().front();
     const Real kxTabHi =
         buehler.denseXStrikes().empty() ? QL_MAX_REAL : buehler.denseXStrikes().back();
-    const Size earlyExpirySkip = 1;
+    const Size earlyExpirySkip = 0;
     const Size expiryStart = expiryEdgePadding + earlyExpirySkip;
     if (verbose) {
         std::cout << std::fixed << std::setprecision(6);
@@ -635,7 +635,7 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
         buehler.denseXStrikes().empty() ? 0.0 : buehler.denseXStrikes().front();
     const Real kxTabHi =
         buehler.denseXStrikes().empty() ? QL_MAX_REAL : buehler.denseXStrikes().back();
-    const Size earlyExpirySkip = 1;
+    const Size earlyExpirySkip = 0;
     const Size expiryStart = expiryEdgePadding + earlyExpirySkip;
     Size nSkipFdFailed = 0;
 
@@ -947,7 +947,7 @@ std::vector<LvIvFitRow> collect_lv_iv_fit_grid(const MarketData& md,
     QL_REQUIRE(xGrid > 0, "collect_lv_iv_fit_grid: xGrid must be positive");
 
     constexpr double kMinEuropeanCallPrice = 1.0e-9;
-    const Size earlyExpirySkip = 1;
+    const Size earlyExpirySkip = 0;
     const Size expiryStart = earlyExpirySkip;
     const Real kxTabLo =
         buehler.denseXStrikes().empty() ? 0.0 : buehler.denseXStrikes().front();
@@ -1050,7 +1050,7 @@ std::vector<LsvVsLvRow> collect_lsv_vs_lv_grid(const MarketData& md,
         buehler.denseXStrikes().empty() ? 0.0 : buehler.denseXStrikes().front();
     const Real kxTabHi =
         buehler.denseXStrikes().empty() ? QL_MAX_REAL : buehler.denseXStrikes().back();
-    const Size earlyExpirySkip = 1;
+    const Size earlyExpirySkip = 0;
     const Size expiryStart = expiryEdgePadding + earlyExpirySkip;
     Size nSkipFdFailed = 0;
 

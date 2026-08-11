@@ -1,6 +1,6 @@
 /**
  * @file buehler_iv_x_arbitrage.h
- * @brief Static arbitrage checks on bicubic σ_X from calibrated Buehler model.
+ * @brief Static arbitrage checks on implied σ_X from calibrated Buehler model.
  */
 
 #ifndef BUEHLER_IV_X_ARBITRAGE_H
@@ -36,7 +36,7 @@ struct BuehlerImpliedVolXArbitrageReport {
     }
 };
 
-/** @brief Butterfly + calendar static arbitrage on bicubic σ_X (pure-X call prices). */
+/** @brief Butterfly + calendar static arbitrage on implied σ_X (pure-X call prices). */
 BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
     const BuehlerModel& buehler,
     QuantLib::Size nTimeSamples = 240,

@@ -4,6 +4,7 @@
  */
 
 #include "market_data.h"
+#include "linear_time_cubic_strike_interpolation.h"
 #include "ql/math/interpolations/cubicinterpolation.hpp"
 #include <ql/time/daycounters/actual365fixed.hpp>
 #include <algorithm>
@@ -398,7 +399,7 @@ void MarketData::buildQuantLibHandles() {
     auto blackSurface = ext::make_shared<BlackVarianceSurface>(
         today_, calendar_, expiries_, strikes_, impliedVols_, dayCounter_,
         BlackVarianceSurface::ConstantExtrapolation, BlackVarianceSurface::ConstantExtrapolation);
-    blackSurface->setInterpolation<Bicubic>();
+    blackSurface->setInterpolation<LinearTimeCubicStrike>();
     blackSurface->enableExtrapolation();
     blackVolTs_ = Handle<BlackVolTermStructure>(blackSurface);
 }
