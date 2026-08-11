@@ -16,16 +16,17 @@
 class MarketData;
 class BuehlerMcTimeGridSigmaLookup;
 
-/** Dupire repair health gates: fraction of dense-grid cells that fell back to the Black
- *  vol proxy. Above the warn level, calibration prints a stderr warning; above the fail
- *  level, calibration throws (the local vol no longer reprices the surface it was built from). */
-constexpr double kDupireBlackFallbackWarnFraction = 0.05;
-constexpr double kDupireBlackFallbackFailFraction = 0.25;
+/** Dupire repair health gates: fraction of dense-grid cells repaired by copying the
+ *  nearest good LV at larger kx (IV only if no such donor). Above warn → stderr;
+ *  above fail → throw. */
+constexpr double kDupireRepairWarnFraction = 0.05;
+constexpr double kDupireRepairFailFraction = 0.25;
 
 /** @brief Dupire dense-grid repair counts from the last calibration. */
 struct BuehlerLvDenseRepairCounts {
     QuantLib::Size denseGridCells = 0;
-    QuantLib::Size dupireBlackFallbacks = 0;
+    /** Cells filled from a larger-kx good LV, or last-resort IV if no donor. */
+    QuantLib::Size dupireRepairs = 0;
 };
 
 /** @brief Bergomi 1-factor OU driver for LSV dynamics on the pure-stock coordinate @e X. */
@@ -134,7 +135,7 @@ public:
     const QuantLib::Matrix& denseLocalVolXGrid() const { return denseLocalVolXGrid_; }
 
     const BuehlerLvDenseRepairCounts& lastLvDenseRepairCounts() const { return lastLvDenseRepair_; }
-    QuantLib::Size lastLvDupireBlackFallbacks() const { return lastLvDenseRepair_.dupireBlackFallbacks; }
+    QuantLib::Size lastLvDupireRepairs() const { return lastLvDenseRepair_.dupireRepairs; }
 
     bool hasLsvCalibration() const { return bergomiParams_.has_value(); }
 

@@ -348,11 +348,12 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         denseXStrikes.push_back(xLow + i * (xHighRight - xLow) / (nDenseStr - 1));
     }
 
-    // sample local vol from rebuilt X-implied surface
+    // Sample Dupire LV, then repair bad cells with the nearest good LV at a larger kx
+    // (scan high→low strike per expiry). IV only if no good larger-strike donor exists.
     Size nStr = denseXStrikes.size();
     const Size nExp = denseExpiries.size();
     auto sampledLocalVolMatrix = ext::make_shared<Matrix>(nStr, nExp);
-    Size blackFallbackCount = 0;
+    Size dupireRepairCount = 0;
     auto xCurve = ext::make_shared<FlatForward>(today, 0.0, dayCounter);
     xCurve->enableExtrapolation();
     Handle<YieldTermStructure> xTs(xCurve);
@@ -361,30 +362,48 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     auto localVolSource = ext::make_shared<LocalVolSurface>(rebuiltPureBlackVolTs, xTs, xTs, xSpot);
     localVolSource->enableExtrapolation();
 
+    constexpr Volatility kDupireLocalVolMax = 2.0;
+    auto isUsableDupireLv = [&](Volatility sigma) {
+        return isPositiveFiniteVol(sigma) && sigma <= kDupireLocalVolMax;
+    };
 
-    for (Size i = 0; i < nStr; ++i) {
-        for (Size j = 0; j < nExp; ++j) {
+    for (Size j = 0; j < nExp; ++j) {
+        const Date& d = denseExpiries[j];
+        for (Size i = 0; i < nStr; ++i) {
             Volatility sigma = Null<Volatility>();
             try {
-                sigma = localVolSource->localVol(denseExpiries[j], denseXStrikes[i], true);
+                sigma = localVolSource->localVol(d, denseXStrikes[i], true);
             } catch (...) {
                 sigma = Null<Volatility>();
             }
-            const Volatility kDupireLocalVolBlackFallback = 10.0;
-            if (!isPositiveFiniteVol(sigma) || sigma > kDupireLocalVolBlackFallback) {
-                ++blackFallbackCount;
-                const Date& d = denseExpiries[j];
-                const Real kx = denseXStrikes[i];
-                sigma = safeBlackVol(rebuiltPureBlackVolTs, d, kx);
-                if (!isPositiveFiniteVol(sigma))
-                    sigma = safeBlackVol(pureBlackVolTs, d, kx);
-                if (!isPositiveFiniteVol(sigma)) {
-                    const Size jm = nearestMarketExpiryIndex(marketExpiries, d);
-                    sigma = impliedVolXFromGrid(impliedVolsX, marketXStrikes, jm, kx);
-                }
+            (*sampledLocalVolMatrix)[i][j] = isUsableDupireLv(sigma) ? sigma : Null<Volatility>();
+        }
+
+        Volatility donor = Null<Volatility>();
+        for (Size ii = nStr; ii > 0; --ii) {
+            const Size i = ii - 1;
+            Volatility sigma = (*sampledLocalVolMatrix)[i][j];
+            if (isUsableDupireLv(sigma)) {
+                donor = sigma;
+                continue;
+            }
+            ++dupireRepairCount;
+            if (isUsableDupireLv(donor)) {
+                (*sampledLocalVolMatrix)[i][j] = donor;
+                continue;
+            }
+            // No good LV at larger kx: last-resort IV at this node (does not become donor).
+            const Real kx = denseXStrikes[i];
+            sigma = safeBlackVol(rebuiltPureBlackVolTs, d, kx);
+            if (!isPositiveFiniteVol(sigma))
+                sigma = safeBlackVol(pureBlackVolTs, d, kx);
+            if (!isPositiveFiniteVol(sigma)) {
+                const Size jm = nearestMarketExpiryIndex(marketExpiries, d);
+                sigma = impliedVolXFromGrid(impliedVolsX, marketXStrikes, jm, kx);
             }
             QL_REQUIRE(isPositiveFiniteVol(sigma),
-                       "Buehler Dupire dense LV: invalid σ after Black-vol fallback (check surface / grid)");
+                       "Buehler Dupire dense LV: invalid σ after strike-right/IV repair "
+                       "(check surface / grid)");
             (*sampledLocalVolMatrix)[i][j] = sigma;
         }
     }
@@ -452,7 +471,7 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     outDenseXStrikes = denseXStrikes;
     if (outRepair != nullptr) {
         outRepair->denseGridCells = nStr * nExp;
-        outRepair->dupireBlackFallbacks = blackFallbackCount;
+        outRepair->dupireRepairs = dupireRepairCount;
     }
     return Handle<LocalVolTermStructure>(flatOutside);
 }
@@ -883,26 +902,25 @@ void BuehlerModel::calibration(const bool runValidation) {
 
     mcSigmaLookupCache_.reset();
 
-    // Dupire repair health gate: the Black-vol fallback is a benign patch for isolated
-    // numerically-degenerate cells, but a large fallback share means the "local vol" is
-    // mostly a disguised implied vol and no longer reprices the input surface.
+    // Dupire repair health gate: strike-right LV fill is a benign patch for isolated
+    // bad cells; a large fallback share means the Dupire surface is unreliable.
     if (lastLvDenseRepair_.denseGridCells > 0) {
         const double fallbackFraction =
-            static_cast<double>(lastLvDenseRepair_.dupireBlackFallbacks) /
+            static_cast<double>(lastLvDenseRepair_.dupireRepairs) /
             static_cast<double>(lastLvDenseRepair_.denseGridCells);
-        QL_REQUIRE(fallbackFraction <= kDupireBlackFallbackFailFraction,
-                   "BuehlerModel::calibration: " << lastLvDenseRepair_.dupireBlackFallbacks
+        QL_REQUIRE(fallbackFraction <= kDupireRepairFailFraction,
+                   "BuehlerModel::calibration: " << lastLvDenseRepair_.dupireRepairs
                        << " of " << lastLvDenseRepair_.denseGridCells
                        << " dense LV cells (" << 100.0 * fallbackFraction
-                       << "%) fell back to Black vol, above the "
-                       << 100.0 * kDupireBlackFallbackFailFraction
+                       << "%) required strike-right/IV repair; exceeds "
+                       << 100.0 * kDupireRepairFailFraction
                        << "% hard limit; the Dupire surface is unreliable on this snapshot");
-        if (fallbackFraction > kDupireBlackFallbackWarnFraction) {
-            std::cerr << "[calibration warning] Dupire Black-vol fallback on "
-                      << lastLvDenseRepair_.dupireBlackFallbacks << " of "
+        if (fallbackFraction > kDupireRepairWarnFraction) {
+            std::cerr << "[calibration warning] Dupire strike-right LV repair on "
+                      << lastLvDenseRepair_.dupireRepairs << " of "
                       << lastLvDenseRepair_.denseGridCells << " dense LV cells ("
                       << 100.0 * fallbackFraction << "%, warn level "
-                      << 100.0 * kDupireBlackFallbackWarnFraction << "%)\n";
+                      << 100.0 * kDupireRepairWarnFraction << "%)\n";
         }
     }
 
