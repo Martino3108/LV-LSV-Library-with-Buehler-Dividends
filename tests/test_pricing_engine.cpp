@@ -385,9 +385,9 @@ TEST(calibration_validation_and_fallbacks) {
 
     const BuehlerLvDenseRepairCounts& repair = model.lastLvDenseRepairCounts();
     CHECK(repair.denseGridCells > 0);
-    const double fallbackFraction = static_cast<double>(repair.dupireBlackFallbacks) /
+    const double fallbackFraction = static_cast<double>(repair.dupireRepairs) /
                                     static_cast<double>(repair.denseGridCells);
-    CHECK(fallbackFraction <= kDupireBlackFallbackWarnFraction);
+    CHECK(fallbackFraction <= kDupireRepairWarnFraction);
 }
 
 MarketData makeFlatDividendTestMarket(const std::vector<std::string>& divDates,
