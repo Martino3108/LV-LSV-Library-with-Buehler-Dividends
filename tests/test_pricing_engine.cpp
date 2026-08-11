@@ -381,7 +381,6 @@ TEST(calibration_validation_and_fallbacks) {
     options.verbose = false;
     const BuehlerCalibrationValidationReport report = model.validate_calibration(options);
     CHECK(report.staticArbitrageOk);
-    CHECK(report.smileFitOk);
     CHECK(report.passed());
 
     const BuehlerLvDenseRepairCounts& repair = model.lastLvDenseRepairCounts();

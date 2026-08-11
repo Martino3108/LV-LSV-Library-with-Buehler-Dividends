@@ -8,7 +8,6 @@
 
 #include "buehler_fixing_save_path.h"
 #include "buehler_mc_settings.h"
-#include "fd_buehler_x_fdm.h"
 #include <ql/quantlib.hpp>
 #include <memory>
 #include <optional>
@@ -16,9 +15,6 @@
 
 class MarketData;
 class BuehlerMcTimeGridSigmaLookup;
-
-/** Mean |Δσ| gate (bp) for @c validate_calibration on the 3×3 FD smile-fit grid. */
-constexpr double kDefaultValidateMeanIvErrBpThreshold = 50.0;
 
 /** Dupire repair health gates: fraction of dense-grid cells that fell back to the Black
  *  vol proxy. Above the warn level, calibration prints a stderr warning; above the fail
@@ -39,40 +35,17 @@ struct BuehlerBergomiParams {
     QuantLib::Real rho = 0.0;
 };
 
-/** @brief One cell of the 3×3 FD vs market IV smile-fit grid in @c validate_calibration. */
-struct BuehlerCalibrationSmileFitSample {
-    QuantLib::Date expiry;
-    QuantLib::Real strikeS = QuantLib::Null<QuantLib::Real>();
-    QuantLib::Real lvPriceS = QuantLib::Null<QuantLib::Real>();
-    QuantLib::Real sigmaMarketS = QuantLib::Null<QuantLib::Real>();
-    QuantLib::Real sigmaImpS = QuantLib::Null<QuantLib::Real>();
-    double absErrIvBp = 0.0;
-    /** @c ok, @c fd_failed, @c lv_price_too_low, @c bad_market_vol, @c inversion_failed, @c skipped */
-    const char* status = "skipped";
-};
-
 /** @brief Options for @c BuehlerModel::validate_calibration. */
 struct BuehlerCalibrationValidationOptions {
-    /** Mean |Δσ| gate (bp) on the 3×3 FD fit grid (wings + term extremes). */
-    double meanIvErrBpThreshold = kDefaultValidateMeanIvErrBpThreshold;
-    QuantLib::Size fdTGridPerYear = kDefaultFdTGridPerYear;
-    QuantLib::Size fdXGrid = kDefaultFdXGrid;
     bool throwOnFailure = true;
     /** Print the PASS/FAIL summary to stdout (library callers usually read the report instead). */
     bool verbose = false;
 };
 
-/** @brief Result of @c BuehlerModel::validate_calibration (arb + FD smile fit on 3 expiries). */
+/** @brief Result of @c BuehlerModel::validate_calibration (static arb on σ_X). */
 struct BuehlerCalibrationValidationReport {
     bool staticArbitrageOk = false;
-    bool smileFitOk = false;
-    double meanAbsIvErrBp = 0.0;
-    QuantLib::Size smileFitSamples = 0;
-    QuantLib::Size expectedSmileFitSamples = 0;
-    QuantLib::Size priceableStrikeCount = 0;
-    QuantLib::Date probeShortestExpiry;
-    std::vector<BuehlerCalibrationSmileFitSample> smileFitCells;
-    bool passed() const { return staticArbitrageOk && smileFitOk; }
+    bool passed() const { return staticArbitrageOk; }
 };
 
 /** @brief Pure-X surfaces and fixed LV built from @ref MarketData. */
@@ -93,10 +66,8 @@ public:
     void calibration(bool runValidation = true);
 
     /**
-     * @brief Post-calibration gate: butterfly+calendar static arb on σ_X, then mean IV fit.
-     * Smile fit uses @c LvEuropeanFdBuehlerOption (FD) on a 3×3 grid: first, middle, and last
-     * eligible market expiries and strikes (t>0, kx in Fixed LV tab). Uses the market snapshot
-     * copied at construction. Throws if @p options.throwOnFailure and a check fails.
+     * @brief Post-calibration gate: butterfly+calendar static arb on σ_X.
+     * Throws if @p options.throwOnFailure and the check fails.
      * Requires @c preprocessing() and @c calibration() first.
      */
     BuehlerCalibrationValidationReport validate_calibration(

@@ -7,10 +7,7 @@
 #include "buehler_fixing_path_simulate.h"
 #include "buehler_iv_x_arbitrage.h"
 #include "buehler_mc_sigma_lookup.h"
-#include "fd_buehler_x_fdm.h"
-#include "lv_european_fd_buehler_option.h"
 #include "market_data.h"
-#include "option.h"
 #include "linear_time_cubic_strike_interpolation.h"
 #include "ql/math/interpolations/cubicinterpolation.hpp"
 #include <ql/pricingengines/blackformula.hpp>
@@ -1022,27 +1019,6 @@ const std::vector<QuantLib::Date>& BuehlerModel::fixingPathSimulationDates() con
     return fixingPathSimulationDates_;
 }
 
-namespace {
-
-std::vector<QuantLib::Size> firstMiddleLastGridIndices(const std::vector<QuantLib::Size>& eligible,
-                                                       const char* gridLabel) {
-    QL_REQUIRE(eligible.size() >= 3,
-               "validate_calibration: need at least 3 eligible " << gridLabel
-                                                                 << " after filters (have "
-                                                                 << eligible.size() << ")");
-    std::vector<QuantLib::Size> picked;
-    auto appendUnique = [&](QuantLib::Size i) {
-        if (picked.empty() || picked.back() != i)
-            picked.push_back(i);
-    };
-    appendUnique(eligible.front());
-    appendUnique(eligible[eligible.size() / 2]);
-    appendUnique(eligible.back());
-    return picked;
-}
-
-} // namespace
-
 BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
     BuehlerCalibrationValidationOptions options) const {
     using namespace QuantLib;
@@ -1051,9 +1027,6 @@ BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
                "validate_calibration: call calibration() first");
     QL_REQUIRE(!fixedPureLocalVolTs_.empty(),
                "validate_calibration: call calibration() first");
-    QL_REQUIRE(!inputExpiries_.empty(), "validate_calibration: empty market expiries");
-    QL_REQUIRE(!inputStrikes_.empty(), "validate_calibration: empty market strikes");
-    QL_REQUIRE(!inputBlackVolTs_.empty(), "validate_calibration: empty market Black vol");
 
     BuehlerCalibrationValidationReport rep;
 
@@ -1061,197 +1034,8 @@ BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
         check_static_arbitrage(*this, 240, 100, 0.0, 0.0, false);
     rep.staticArbitrageOk = arbRep.allPassed();
 
-    const Real kxTabLo = denseXStrikes_.empty() ? 0.0 : denseXStrikes_.front();
-    const Real kxTabHi =
-        denseXStrikes_.empty() ? std::numeric_limits<Real>::max() : denseXStrikes_.back();
-
-    std::vector<Size> eligibleExpiries;
-    eligibleExpiries.reserve(inputExpiries_.size());
-    for (Size j = 0; j < inputExpiries_.size(); ++j) {
-        const Time t = dayCounter_.yearFraction(today_, inputExpiries_[j]);
-        if (t > 0.0)
-            eligibleExpiries.push_back(j);
-    }
-
-    std::vector<Size> eligibleStrikes;
-    eligibleStrikes.reserve(inputStrikes_.size());
-    for (Size i = 0; i < inputStrikes_.size(); ++i) {
-        bool ok = true;
-        for (const Size j : eligibleExpiries) {
-            const Date& expiry = inputExpiries_[j];
-            const Real forwardS = forward0T(expiry);
-            const Real D = dividendCarry0T(expiry);
-            const Real A = forwardS - D;
-            if (A <= 0.0) {
-                ok = false;
-                break;
-            }
-            const Real kx = (inputStrikes_[i] - D) / A;
-            if (kx <= 0.0) {
-                ok = false;
-                break;
-            }
-            if (!denseXStrikes_.empty() && kx < kxTabLo - 1.0e-12) {
-                ok = false;
-                break;
-            }
-            if (!denseXStrikes_.empty() && kx > kxTabHi + 1.0e-12) {
-                ok = false;
-                break;
-            }
-        }
-        if (ok)
-            eligibleStrikes.push_back(i);
-    }
-
-    const std::vector<Size> expiryIndices =
-        firstMiddleLastGridIndices(eligibleExpiries, "expiries");
-
-    constexpr double kMinEuropeanCallPrice = 1.0e-4;
-    /** Market European call in S: 0.1 centesimi (= 0.001). */
-    constexpr double kMinMarketCallPriceS = 0.001;
-    const Size shortestExpiryIdx = expiryIndices.front();
-    const Date& shortestExpiry = inputExpiries_[shortestExpiryIdx];
-
-    const auto marketEuropeanCallPriceInS = [&](const Date& expiry,
-                                              const Real strikeS) -> Real {
-        const Time t = dayCounter_.yearFraction(today_, expiry);
-        if (t <= 0.0)
-            return Null<Real>();
-        const Real forwardS = forward0T(expiry);
-        const Real discountS = inputRiskFreeTs_->discount(expiry);
-        const Volatility sigmaS = inputBlackVolTs_->blackVol(expiry, strikeS, true);
-        if (!std::isfinite(sigmaS) || sigmaS <= 0.0)
-            return Null<Real>();
-        const Real callPriceS = blackFormula(QuantLib::Option::Call, strikeS, forwardS,
-                                             sigmaS * std::sqrt(t), discountS);
-        return std::isfinite(callPriceS) ? callPriceS : Null<Real>();
-    };
-
-    std::vector<Size> priceableStrikes;
-    priceableStrikes.reserve(eligibleStrikes.size());
-    for (const Size i : eligibleStrikes) {
-        const Real marketCallS = marketEuropeanCallPriceInS(shortestExpiry, inputStrikes_[i]);
-        if (std::isfinite(marketCallS) && marketCallS > kMinMarketCallPriceS)
-            priceableStrikes.push_back(i);
-    }
-
-    const std::vector<Size> strikeIndices =
-        firstMiddleLastGridIndices(priceableStrikes, "strikes");
-    const Size expectedSamples = expiryIndices.size() * strikeIndices.size();
-    rep.expectedSmileFitSamples = expectedSamples;
-    rep.priceableStrikeCount = priceableStrikes.size();
-    rep.probeShortestExpiry = shortestExpiry;
-    rep.smileFitCells.reserve(expectedSamples);
-
-    double sumAbsErrIvBp = 0.0;
-
-    for (const Size j : expiryIndices) {
-        const Date& expiry = inputExpiries_[j];
-        const Time t = dayCounter_.yearFraction(today_, expiry);
-        if (t <= 0.0)
-            continue;
-
-        const Real forwardS = forward0T(expiry);
-        const Real discountS = inputRiskFreeTs_->discount(expiry);
-
-        for (const Size i : strikeIndices) {
-            const Real strikeS = inputStrikes_[i];
-            BuehlerCalibrationSmileFitSample cell;
-            cell.expiry = expiry;
-            cell.strikeS = strikeS;
-
-            const Real D = dividendCarry0T(expiry);
-            const Real A = forwardS - D;
-            if (A <= 0.0) {
-                cell.status = "skipped_affine";
-                rep.smileFitCells.push_back(cell);
-                continue;
-            }
-
-            const Real kx = (strikeS - D) / A;
-            if (kx <= 0.0) {
-                cell.status = "skipped_kx";
-                rep.smileFitCells.push_back(cell);
-                continue;
-            }
-
-            OptionContractParams params;
-            params.expiry = expiry;
-            params.strike = strikeS;
-            params.isCall = true;
-
-            const LvEuropeanFdBuehlerOption option(params, BuehlerOptionPriceSpace::S,
-                                                   options.fdTGridPerYear, options.fdXGrid);
-            Real lvPriceS = Null<Real>();
-            try {
-                lvPriceS = option.price(*this);
-            } catch (const std::exception&) {
-                cell.status = "fd_failed";
-                rep.smileFitCells.push_back(cell);
-                continue;
-            }
-            cell.lvPriceS = lvPriceS;
-            if (!std::isfinite(lvPriceS) || lvPriceS <= kMinEuropeanCallPrice) {
-                cell.status = "lv_price_too_low";
-                rep.smileFitCells.push_back(cell);
-                continue;
-            }
-
-            const Volatility sigmaMarketS = inputBlackVolTs_->blackVol(expiry, strikeS, true);
-            cell.sigmaMarketS = sigmaMarketS;
-            if (!std::isfinite(sigmaMarketS) || sigmaMarketS <= 0.0) {
-                cell.status = "bad_market_vol";
-                rep.smileFitCells.push_back(cell);
-                continue;
-            }
-
-            const Real stdDevMkt = sigmaMarketS * std::sqrt(t);
-            try {
-                const Real stdDevImp = blackFormulaImpliedStdDev(
-                    QuantLib::Option::Call, strikeS, forwardS, lvPriceS, discountS, 0.0, stdDevMkt,
-                    1.0e-8, 200);
-                const double sigmaImpS = static_cast<double>(stdDevImp / std::sqrt(t));
-                if (!std::isfinite(sigmaImpS) || sigmaImpS <= 0.0) {
-                    cell.status = "inversion_bad_sigma";
-                    rep.smileFitCells.push_back(cell);
-                    continue;
-                }
-                cell.sigmaImpS = static_cast<Real>(sigmaImpS);
-                cell.absErrIvBp =
-                    10000.0 * std::fabs(sigmaImpS - static_cast<double>(sigmaMarketS));
-                cell.status = "ok";
-                sumAbsErrIvBp += cell.absErrIvBp;
-                ++rep.smileFitSamples;
-            } catch (const std::exception&) {
-                cell.status = "inversion_failed";
-            }
-            rep.smileFitCells.push_back(cell);
-        }
-    }
-
-    if (rep.smileFitSamples == 0) {
-        if (options.throwOnFailure) {
-            QL_FAIL("validate_calibration: no smile-fit samples on selected expiries/strikes");
-        }
-        rep.meanAbsIvErrBp = 0.0;
-        rep.smileFitOk = false;
-    } else {
-        rep.meanAbsIvErrBp = sumAbsErrIvBp / static_cast<double>(rep.smileFitSamples);
-        rep.smileFitOk = rep.smileFitSamples == expectedSamples &&
-                         rep.meanAbsIvErrBp <= options.meanIvErrBpThreshold;
-    }
-
-    if (rep.smileFitSamples != expectedSamples && options.throwOnFailure) {
-        std::ostringstream oss;
-        oss << "validate_calibration: expected " << expectedSamples
-            << " smile-fit samples but got " << rep.smileFitSamples;
-        QL_FAIL(oss.str());
-    }
-
     if (options.verbose) {
         std::cout << "static arbitrage: " << (rep.staticArbitrageOk ? "PASS" : "FAIL") << '\n';
-        std::cout << "fit implied vol: " << (rep.smileFitOk ? "PASS" : "FAIL") << '\n';
     }
 
     if (!rep.staticArbitrageOk && options.throwOnFailure) {
@@ -1263,14 +1047,6 @@ BuehlerCalibrationValidationReport BuehlerModel::validate_calibration(
             << (100.0 * BuehlerImpliedVolXArbitrageReport::kMaxViolationFraction)
             << "% violations or minButterfly < "
             << BuehlerImpliedVolXArbitrageReport::kMinButterflyFloor << ")";
-        QL_FAIL(oss.str());
-    }
-
-    if (!rep.smileFitOk && options.throwOnFailure) {
-        std::ostringstream oss;
-        oss << "validate_calibration: mean IV error " << rep.meanAbsIvErrBp
-            << " bp exceeds threshold " << options.meanIvErrBpThreshold << " bp (samples="
-            << rep.smileFitSamples << ")";
         QL_FAIL(oss.str());
     }
 

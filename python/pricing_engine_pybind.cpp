@@ -842,34 +842,11 @@ PYBIND11_MODULE(pricing_engine, m) {
 
     py::class_<BuehlerCalibrationValidationOptions>(m, "ValidateOptions")
         .def(py::init<>())
-        .def_readwrite("mean_iv_err_bp_threshold",
-                       &BuehlerCalibrationValidationOptions::meanIvErrBpThreshold)
-        .def_readwrite("fd_t_grid_per_year", &BuehlerCalibrationValidationOptions::fdTGridPerYear)
-        .def_readwrite("fd_x_grid", &BuehlerCalibrationValidationOptions::fdXGrid)
         .def_readwrite("throw_on_failure", &BuehlerCalibrationValidationOptions::throwOnFailure)
         .def_readwrite("verbose", &BuehlerCalibrationValidationOptions::verbose);
 
-    py::class_<BuehlerCalibrationSmileFitSample>(m, "SmileFitSample")
-        .def_property_readonly("expiry", [](const BuehlerCalibrationSmileFitSample& s) {
-            return formatIsoDate(s.expiry);
-        })
-        .def_readonly("strike_s", &BuehlerCalibrationSmileFitSample::strikeS)
-        .def_readonly("lv_price_s", &BuehlerCalibrationSmileFitSample::lvPriceS)
-        .def_readonly("sigma_market_s", &BuehlerCalibrationSmileFitSample::sigmaMarketS)
-        .def_readonly("sigma_imp_s", &BuehlerCalibrationSmileFitSample::sigmaImpS)
-        .def_readonly("abs_err_iv_bp", &BuehlerCalibrationSmileFitSample::absErrIvBp)
-        .def_property_readonly("status", [](const BuehlerCalibrationSmileFitSample& s) {
-            return std::string(s.status);
-        });
-
     py::class_<BuehlerCalibrationValidationReport>(m, "ValidationReport")
         .def_readonly("static_arbitrage_ok", &BuehlerCalibrationValidationReport::staticArbitrageOk)
-        .def_readonly("smile_fit_ok", &BuehlerCalibrationValidationReport::smileFitOk)
-        .def_readonly("mean_abs_iv_err_bp", &BuehlerCalibrationValidationReport::meanAbsIvErrBp)
-        .def_readonly("smile_fit_samples", &BuehlerCalibrationValidationReport::smileFitSamples)
-        .def_readonly("expected_smile_fit_samples",
-                      &BuehlerCalibrationValidationReport::expectedSmileFitSamples)
-        .def_readonly("smile_fit_cells", &BuehlerCalibrationValidationReport::smileFitCells)
         .def("passed", &BuehlerCalibrationValidationReport::passed);
 
     py::class_<BuehlerImpliedVolXArbitrageReport>(m, "ArbitrageReport")
