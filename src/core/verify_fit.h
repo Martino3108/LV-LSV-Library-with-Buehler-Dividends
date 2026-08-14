@@ -14,6 +14,10 @@
 
 class MarketData;
 
+/** Drop verify IV cells whose Black call vega ∂C/∂σ is at or below this floor
+ *  (ill-conditioned inversion, not a smile-wing cut). */
+constexpr double kVerifyMinBlackVegaS = 1.0e-4;
+
 /**
  * @brief FD on fixed LV in X vs analytic Black.
  * @param md Market dataset used to build @p buehler.

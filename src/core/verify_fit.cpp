@@ -45,6 +45,36 @@ struct BuehlerSigmaSFromLvRow {
     double sigmaImpliedS = 0.0;
     double absErrIvBp = 0.0;
 };
+
+QuantLib::Real blackCallVegaS(QuantLib::Real strikeS,
+                              QuantLib::Real forwardS,
+                              QuantLib::Time t,
+                              QuantLib::Volatility sigmaS,
+                              QuantLib::Real discountS) {
+    using namespace QuantLib;
+    if (!(t > 0.0) || !(sigmaS > 0.0) || !(forwardS > 0.0) || !(strikeS > 0.0) ||
+        !(discountS > 0.0) || !std::isfinite(static_cast<double>(sigmaS))) {
+        return 0.0;
+    }
+    try {
+        const Real stdDev = sigmaS * std::sqrt(t);
+        const Real dC_dStdDev =
+            blackFormulaStdDevDerivative(strikeS, forwardS, stdDev, discountS);
+        if (!std::isfinite(static_cast<double>(dC_dStdDev)) || dC_dStdDev <= 0.0)
+            return 0.0;
+        return dC_dStdDev * std::sqrt(t);
+    } catch (...) {
+        return 0.0;
+    }
+}
+
+bool usableVerifyVegaS(QuantLib::Real strikeS,
+                       QuantLib::Real forwardS,
+                       QuantLib::Time t,
+                       QuantLib::Volatility sigmaS,
+                       QuantLib::Real discountS) {
+    return blackCallVegaS(strikeS, forwardS, t, sigmaS, discountS) > kVerifyMinBlackVegaS;
+}
 } // namespace
 
 void export_lv_fixed_x_csv(const BuehlerModel& buehler,
@@ -411,7 +441,8 @@ void verify_LV_BS_consistency(const MarketData& md,
                         const double sigmaImpS = benchmarkToDouble(stdDevImp / std::sqrt(t));
                         const double sigmaMktS = benchmarkToDouble(sigmaMarketS);
                         if (std::isfinite(sigmaImpS) && sigmaImpS > 0.0 &&
-                            std::isfinite(sigmaMktS) && sigmaMktS > 0.0) {
+                            std::isfinite(sigmaMktS) && sigmaMktS > 0.0 &&
+                            usableVerifyVegaS(strikeS, forwardS, t, sigmaMktS, discountS)) {
                             BuehlerSigmaSFromLvRow sRow;
                             sRow.expiry = expiry;
                             sRow.strikeS = strikeS;
@@ -847,7 +878,9 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
             scenario.ivLvS != Null<Real>() ? scenario.ivLvS : 0.2;
         row.ivLsvS = tryImpliedSigmaS(scenario.strikeS, scenario.forwardS, row.lsvPriceS,
                                       scenario.discountS, scenario.t, ivGuessForLsv);
-        if (scenario.ivLvS != Null<Real>() && row.ivLsvS != Null<Real>()) {
+        if (scenario.ivLvS != Null<Real>() && row.ivLsvS != Null<Real>() &&
+            usableVerifyVegaS(scenario.strikeS, scenario.forwardS, scenario.t, scenario.ivLvS,
+                              scenario.discountS)) {
             row.inIvTable = true;
             row.absErrIvBp =
                 10000.0 * std::fabs(benchmarkToDouble(row.ivLsvS) - benchmarkToDouble(scenario.ivLvS));
@@ -1006,7 +1039,8 @@ std::vector<LvIvFitRow> collect_lv_iv_fit_grid(const MarketData& md,
                 const double sigmaLvS = benchmarkToDouble(stdDevImp / std::sqrt(t));
                 const double sigmaMktS = benchmarkToDouble(sigmaMarketS);
                 if (std::isfinite(sigmaLvS) && sigmaLvS > 0.0 && std::isfinite(sigmaMktS) &&
-                    sigmaMktS > 0.0) {
+                    sigmaMktS > 0.0 &&
+                    usableVerifyVegaS(strikeS, forwardS, t, sigmaMktS, discountS)) {
                     LvIvFitRow row;
                     row.expiry = expiry;
                     row.strikeS = strikeS;
@@ -1197,14 +1231,14 @@ std::vector<LsvVsLvRow> collect_lsv_vs_lv_grid(const MarketData& md,
             scenario.ivLvS != Null<Real>() ? scenario.ivLvS : static_cast<Real>(0.2);
         const Real ivLsv = tryImpliedSigmaS(scenario.strikeS, scenario.forwardS, lsvPriceS,
                                             scenario.discountS, scenario.t, ivGuessForLsv);
-        row.ivLsvS = ivLsv != Null<Real>() ? benchmarkToDouble(ivLsv)
-                                           : std::numeric_limits<double>::quiet_NaN();
-        if (scenario.ivLvS != Null<Real>() && ivLsv != Null<Real>()) {
-            row.absErrIvBp =
-                10000.0 * std::fabs(benchmarkToDouble(ivLsv) - benchmarkToDouble(scenario.ivLvS));
-        } else {
-            row.absErrIvBp = std::numeric_limits<double>::quiet_NaN();
+        if (scenario.ivLvS == Null<Real>() || ivLsv == Null<Real>() ||
+            !usableVerifyVegaS(scenario.strikeS, scenario.forwardS, scenario.t, scenario.ivLvS,
+                               scenario.discountS)) {
+            continue;
         }
+        row.ivLsvS = benchmarkToDouble(ivLsv);
+        row.absErrIvBp =
+            10000.0 * std::fabs(benchmarkToDouble(ivLsv) - benchmarkToDouble(scenario.ivLvS));
         results.push_back(std::move(row));
     }
     return results;
