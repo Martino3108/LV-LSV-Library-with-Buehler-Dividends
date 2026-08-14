@@ -353,7 +353,14 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     Size nStr = denseXStrikes.size();
     const Size nExp = denseExpiries.size();
     auto sampledLocalVolMatrix = ext::make_shared<Matrix>(nStr, nExp);
-    Size dupireRepairCount = 0;
+    // Per-strike-row repair tally: the health gate must compare repairs and cells
+    // over the SAME region — the synthetic band the surface is cropped to below.
+    // The dense axis spans [min_T kx(K_min), max_T kx(K_max)], which cross-expiry
+    // carry can stretch far beyond any single expiry's quoted support; cells
+    // outside the crop are discarded wholesale and must not count against the
+    // gate. Counting them while dividing by the cropped cell count reported
+    // fractions above 100 % on stretched axes.
+    std::vector<Size> repairByRow(nStr, 0);
     auto xCurve = ext::make_shared<FlatForward>(today, 0.0, dayCounter);
     xCurve->enableExtrapolation();
     Handle<YieldTermStructure> xTs(xCurve);
@@ -387,7 +394,7 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
                 donor = sigma;
                 continue;
             }
-            ++dupireRepairCount;
+            ++repairByRow[i];
             if (isUsableDupireLv(donor)) {
                 (*sampledLocalVolMatrix)[i][j] = donor;
                 continue;
@@ -457,6 +464,13 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     }
 
     outDenseLocalVolX = *sampledLocalVolMatrix;
+
+    // Gate scope: repairs inside the cropped band only (rows i0 ≤ i < i1 of the
+    // original axis; after a crop the matrix was rebased so the tally keeps the
+    // pre-crop indices).
+    Size dupireRepairCount = 0;
+    for (Size i = i0; i < i0 + nStr; ++i)
+        dupireRepairCount += repairByRow[i];
 
     auto fixedLocalVolSurface = ext::make_shared<FixedLocalVolSurface>(
         today, denseExpiries, denseXStrikes, sampledLocalVolMatrix, dayCounter,
@@ -540,7 +554,7 @@ protected:
                        "Pure X implied map: normalized call price above 1 by more than tolerance");
             callNorm = hi;
         }
-        const Real stdDevGuess = 0.20 * std::sqrt(clampedT);
+        const Real stdDevGuess = std::max(sigmaS, Real(1.0e-8)) * std::sqrt(clampedT);
         const Real stdDevX = blackFormulaImpliedStdDev(
             QuantLib::Option::Call, kx, 1.0, callNorm, 1.0, 0.0, stdDevGuess, 1.0e-8, 200);
         return stdDevX / std::sqrt(clampedT);
