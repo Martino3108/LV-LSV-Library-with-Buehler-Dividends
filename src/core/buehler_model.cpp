@@ -724,9 +724,15 @@ void BuehlerModel::preprocessing() {
                 }
             } else if (tau > t) {
                 if (cash > 0.0) {
+                    // Bring α back with the same growth used on paid cash: funding
+                    // carry and later proportionals. Π_{(t,τ]}(1−β) = C_e/C(t);
+                    // D += α / (K(t,τ) Π) = α (K(t)/K_e) (C(t)/C_e).
+                    const Real propGrowth = proportionalProduct(
+                        dividendDates, dividendProportional, t, tau);
+                    QL_REQUIRE(propGrowth > 0.0,
+                               "Proportional product between t and cash ex-date must be positive");
                     futureDividendEscrowAtT +=
-                        cash / carryGrowthFactor(riskFreeTs, repoTs, t, tau) *
-                        proportionalProduct(dividendDates, dividendProportional, t, tau);
+                        cash / (carryGrowthFactor(riskFreeTs, repoTs, t, tau) * propGrowth);
                 }
             }
         }
