@@ -55,18 +55,19 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
     const Real xMax = *std::max_element(kxGrid.begin(), kxGrid.end());
     QL_REQUIRE(xMax > xMin && std::isfinite(xMin) && std::isfinite(xMax),
                "Buehler implied-vol X arbitrage: invalid strike range");
-    // Align strike tests with the fixed-LV tabulation: only the synthetic band
-    // [max_T kx(K_min), min_T kx(K_max)] after crop.
-    const Real kxTabLo =
+    // Strike window: Fixed LV tab (wide axis). Floor left at max_T kx(K_min) so
+    // arb is not scored on incomplete left-wing pillars.
+    const Real kxTabLoRaw =
         buehler.denseXStrikes().empty() ? xMin : buehler.denseXStrikes().front();
     const Real kxTabHi =
         buehler.denseXStrikes().empty() ? xMax : buehler.denseXStrikes().back();
+    const Real kxTabLo = std::max(kxTabLoRaw, buehler.calibrationMinKx());
     const bool restrictKxLo = (kxTabLo > 1.0e-10 && kxTabLo <= xMax);
     const bool restrictKxHi = (kxTabHi < QL_MAX_REAL && kxTabHi >= xMin);
     const Real xEffMin = restrictKxLo ? std::max(xMin, kxTabLo) : xMin;
     const Real xEffMax = restrictKxHi ? std::min(xMax, kxTabHi) : xMax;
     QL_REQUIRE(xEffMax > xEffMin,
-               "Buehler implied-vol X arbitrage: empty strike range after LV tab crop");
+               "Buehler implied-vol X arbitrage: empty strike range after LV tab bounds");
 
     const Time tMin = dc.yearFraction(ref, expiries.front());
     const Time tMax = dc.yearFraction(ref, expiries.back());
@@ -114,7 +115,7 @@ BuehlerImpliedVolXArbitrageReport check_static_arbitrage(
         std::cout << "\n=== Buehler implied vol X: static arbitrage (butterfly + calendar) ===\n";
         if (restrictKxLo || restrictKxHi) {
             std::cout << "X strike samples restricted to kx in [" << xEffMin << ", " << xEffMax
-                      << "] (matches dense fixed-LV kx tab after synthetic crop; nodal σ_X grid was ["
+                      << "] (Fixed LV tab floored at max_T kx(K_min); nodal σ_X grid was ["
                       << xMin << ", " << xMax << "])\n";
         }
         std::cout << "X range used [" << xEffMin << ", " << xEffMax << "] | T range [" << tLo << ", "

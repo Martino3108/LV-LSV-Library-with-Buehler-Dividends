@@ -181,16 +181,16 @@ public:
     const QuantLib::Matrix& nodalImpliedVolsX() const { return nodalImpliedVolsX_; }
 
     /**
-     * @brief Lower kx bound used for LV calibration (injected K_min node,
-     * \(\max_T k_x(K_{\min},T)\)).
-     * Valid after @c calibration(); pillars with kx below this are excluded from fit.
+     * @brief Lower reliable kx mark \(\max_T k_x(K_{\min},T)\).
+     * Valid after @c calibration(); verify skips pillars with kx <= this
+     * (incomplete cross-expiry market support on the wide LV axis, including
+     * the expiry that attains the max).
      */
     QuantLib::Real calibrationMinKx() const;
 
     /**
-     * @brief Upper kx bound used for LV calibration (injected K_max node,
-     * \(\min_T k_x(K_{\max},T)\)).
-     * Valid after @c calibration(); pillars with kx above this are excluded from fit.
+     * @brief Upper reliable kx mark \(\min_T k_x(K_{\max},T)\).
+     * Valid after @c calibration().
      */
     QuantLib::Real calibrationMaxKx() const;
 

@@ -151,11 +151,7 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     std::vector<Date>* nodalExpiriesOut = nullptr,
     std::vector<Real>* nodalXStrikesOut = nullptr,
     BuehlerLvDenseRepairCounts* outRepair = nullptr,
-    Handle<BlackVolTermStructure>* impliedVolXOut = nullptr,
-    bool useInjectedMinStrikeKxForSmile = false,
-    Real injectedMinStrikeKxForSmile = 0.0,
-    bool useInjectedMaxStrikeKxForSmile = false,
-    Real injectedMaxStrikeKxForSmile = 0.0) {
+    Handle<BlackVolTermStructure>* impliedVolXOut = nullptr) {
 
     QL_REQUIRE(maxDate > today, "Fixed local-vol build requires maxDate > today");
     QL_REQUIRE(!marketExpiries.empty(), "Fixed local-vol build requires non-empty expiries");
@@ -171,8 +167,6 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     // Implied σ_X: map market strikes K→kx (exact S nodes via the wrapper), fit a
     // monotonic cubic in total variance w=σ²T on that irregular kx support, then
     // evaluate on the common equispaced kx grid (linear wings in w outside support).
-    // Synthetic kx bounds (injected* flags below) are crop markers only — they are
-    // not sampled via S; off-support equispaced nodes come from the X cubic / wings.
     Matrix impliedVolsX(marketXStrikes.size(), marketExpiries.size());
     const Size nKmer = marketKs.size();
     for (Size j = 0; j < marketExpiries.size(); ++j) {
@@ -333,8 +327,8 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         denseExpiries.push_back(d);
     }
 
-    // dense strike grid: uniform kx on the common abscissa [xLow, xHighRight], then cropped to the
-    // synthetic band [max_T kx(K_min), min_T kx(K_max)] when those nodes are injected.
+    // dense strike grid: uniform kx on the common abscissa [xLow, xHighRight]
+    // = [min_T kx(K_min), max_T kx(K_max)].
     const Real xLow = marketXStrikes.front();
     const Real xHighRight = marketXStrikes.back();
     QL_REQUIRE(xHighRight > xLow, "X strike range is degenerate");
@@ -350,13 +344,6 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     Size nStr = denseXStrikes.size();
     const Size nExp = denseExpiries.size();
     auto sampledLocalVolMatrix = ext::make_shared<Matrix>(nStr, nExp);
-    // Per-strike-row repair tally: the health gate must compare repairs and cells
-    // over the SAME region — the synthetic band the surface is cropped to below.
-    // The dense axis spans [min_T kx(K_min), max_T kx(K_max)], which cross-expiry
-    // carry can stretch far beyond any single expiry's quoted support; cells
-    // outside the crop are discarded wholesale and must not count against the
-    // gate. Counting them while dividing by the cropped cell count reported
-    // fractions above 100 % on stretched axes.
     std::vector<Size> repairByRow(nStr, 0);
     auto xCurve = ext::make_shared<FlatForward>(today, 0.0, dayCounter);
     xCurve->enableExtrapolation();
@@ -412,61 +399,10 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         }
     }
 
-    // Crop FixedLocalVol to the synthetic common band:
-    //   left  = max_T kx(K_min,T),   right = min_T kx(K_max,T)
-    // (specular edges of the reliable S→X strike map).
-    Size i0 = 0;
-    Size i1 = nStr; // exclusive
-    if (useInjectedMinStrikeKxForSmile && injectedMinStrikeKxForSmile > 0.0 &&
-        std::isfinite(injectedMinStrikeKxForSmile)) {
-        const Real kxSynLo = injectedMinStrikeKxForSmile;
-        i0 = nStr;
-        for (Size i = 0; i < nStr; ++i) {
-            if (denseXStrikes[i] + 1.0e-12 >= kxSynLo) {
-                i0 = i;
-                break;
-            }
-        }
-        QL_REQUIRE(i0 < nStr,
-                   "Synthetic kx_lo lies above Dupire dense kx grid: cannot build fixed LV");
-    }
-    if (useInjectedMaxStrikeKxForSmile && injectedMaxStrikeKxForSmile > 0.0 &&
-        std::isfinite(injectedMaxStrikeKxForSmile)) {
-        const Real kxSynHi = injectedMaxStrikeKxForSmile;
-        i1 = 0;
-        for (Size i = nStr; i > 0; --i) {
-            if (denseXStrikes[i - 1] <= kxSynHi + 1.0e-12) {
-                i1 = i;
-                break;
-            }
-        }
-        QL_REQUIRE(i1 > 0,
-                   "Synthetic kx_hi lies below Dupire dense kx grid: cannot build fixed LV");
-    }
-    QL_REQUIRE(i1 > i0,
-               "Dupire kx synthetic band [kx_lo, kx_hi] is empty after crop");
-    QL_REQUIRE(i1 - i0 >= 2,
-               "Dupire kx grid leaves fewer than 2 nodes in the synthetic band; refine kx grid");
-    if (i0 != 0 || i1 != nStr) {
-        std::vector<Real> croppedX(denseXStrikes.begin() + static_cast<std::ptrdiff_t>(i0),
-                                   denseXStrikes.begin() + static_cast<std::ptrdiff_t>(i1));
-        auto croppedMat = ext::make_shared<Matrix>(i1 - i0, nExp);
-        for (Size ii = 0; ii < i1 - i0; ++ii) {
-            for (Size jj = 0; jj < nExp; ++jj)
-                (*croppedMat)[ii][jj] = (*sampledLocalVolMatrix)[i0 + ii][jj];
-        }
-        denseXStrikes = std::move(croppedX);
-        sampledLocalVolMatrix = croppedMat;
-        nStr = denseXStrikes.size();
-    }
-
     outDenseLocalVolX = *sampledLocalVolMatrix;
 
-    // Gate scope: repairs inside the cropped band only (rows i0 ≤ i < i1 of the
-    // original axis; after a crop the matrix was rebased so the tally keeps the
-    // pre-crop indices).
     Size dupireRepairCount = 0;
-    for (Size i = i0; i < i0 + nStr; ++i)
+    for (Size i = 0; i < nStr; ++i)
         dupireRepairCount += repairByRow[i];
 
     auto fixedLocalVolSurface = ext::make_shared<FixedLocalVolSurface>(
@@ -764,9 +700,7 @@ void BuehlerModel::calibration(const bool runValidation) {
 
     // kx band for σ_X surface: common equispaced axis [segLo, segHi]. Left/right anchored on
     // min_T kx(K_min,T) and max_T kx(K_max,T). K_min and K_max are excluded from
-    // smileMarketKs for the per-column smile; the synthetic nodes
-    // max_T kx(K_min,T) and min_T kx(K_max,T) are injected on every smile and define the
-    // FixedLocalVol crop (see buildFixedLocalVolFromPureImpliedX).
+    // smileMarketKs for the per-column smile.
     const std::vector<Real>& marketKs = inputStrikes_;
     const std::vector<Date>& expiries  = inputExpiries_;
     const Size nKs  = marketKs.size();
@@ -865,9 +799,8 @@ void BuehlerModel::calibration(const bool runValidation) {
                "Fixed X local-vol needs at least two market expiries");
     const std::vector<Real> surfaceXStrikes = marketXStrikes;
 
-    // Shared synthetic kx abscissae for smile columns / FixedLocalVol crop:
-    // left  = max over surface expiries of kx(K_min),
-    // right = min over surface expiries of kx(K_max).
+    // Reliable-band markers max_T kx(K_min) / min_T kx(K_max): used by verify to
+    // skip incomplete left-wing pillars (Fixed LV itself is not cropped).
     Real kxInjectedSmileLo = -QL_MAX_REAL;
     Real kxInjectedSmileHi = QL_MAX_REAL;
     for (Size j = 0; j < surfaceAffA.size(); ++j) {
@@ -888,9 +821,9 @@ void BuehlerModel::calibration(const bool runValidation) {
         kxInjectedSmileHi < QL_MAX_REAL && kxInjectedSmileHi > 0.0 &&
         std::isfinite(kxInjectedSmileHi);
     QL_REQUIRE(useKxInjectedSmileLo && useKxInjectedSmileHi,
-               "Fixed X local-vol: could not form synthetic kx band from K_min / K_max");
+               "Fixed X local-vol: could not form reliable kx band from K_min / K_max");
     QL_REQUIRE(kxInjectedSmileHi > kxInjectedSmileLo,
-               "Fixed X local-vol: synthetic band max_T kx(K_min) >= min_T kx(K_max)");
+               "Fixed X local-vol: reliable band max_T kx(K_min) >= min_T kx(K_max)");
 
     calibrationMinKx_ = kxInjectedSmileLo;
     calibrationMaxKx_ = kxInjectedSmileHi;
@@ -911,11 +844,7 @@ void BuehlerModel::calibration(const bool runValidation) {
         &nodalImpliedVolXExpiries_,
         &nodalImpliedVolXKxGrid_,
         &lastLvDenseRepair_,
-        &impliedVolXTs_,
-        true,
-        kxInjectedSmileLo,
-        true,
-        kxInjectedSmileHi);
+        &impliedVolXTs_);
 
     QL_REQUIRE(!impliedVolXTs_.empty(),
                "BuehlerModel::calibration: empty rebuilt σ_X Black surface");
