@@ -168,15 +168,13 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
     QL_REQUIRE(marketXStrikes.front() > 0.0 && std::isfinite(marketXStrikes.front()),
                "Buehler fixed LV: market X strikes must start at a positive finite kx");
 
-    // Implied σ_X: monotonic cubic on kx support; left/right wings linear (full spline slopes).
-    // Query-time Black surface: linear in T on total variance w=σ²T, monotonic cubic in kx
-    // (linear in T on w; monotonic cubic in kx).
-    // Optional synthetic abscissae on every smile column: kx = max_T kx(K_min,T) and
-    // kx = min_T kx(K_max,T) (common reliable band after the S→X map).
+    // Implied σ_X: map market strikes K→kx (exact S nodes via the wrapper), fit a
+    // monotonic cubic in total variance w=σ²T on that irregular kx support, then
+    // evaluate on the common equispaced kx grid (linear wings in w outside support).
+    // Synthetic kx bounds (injected* flags below) are crop markers only — they are
+    // not sampled via S; off-support equispaced nodes come from the X cubic / wings.
     Matrix impliedVolsX(marketXStrikes.size(), marketExpiries.size());
     const Size nKmer = marketKs.size();
-    const Size nInjected =
-        (useInjectedMinStrikeKxForSmile ? 1 : 0) + (useInjectedMaxStrikeKxForSmile ? 1 : 0);
     for (Size j = 0; j < marketExpiries.size(); ++j) {
         const Real A = affineAatExp[j];
         const Real D = affineDatExp[j];
@@ -194,10 +192,13 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
             continue;
         }
 
+        const Time Texp = dayCounter.yearFraction(today, marketExpiries[j]);
+        QL_REQUIRE(Texp > 0.0, "Buehler implied σ_X: non-positive expiry year fraction");
+
         std::vector<Real> kxs;
         std::vector<Real> sigs;
-        kxs.reserve(nKmer + nInjected);
-        sigs.reserve(nKmer + nInjected);
+        kxs.reserve(nKmer);
+        sigs.reserve(nKmer);
         for (Size m = 0; m < nKmer; ++m) {
             const Real kx = (marketKs[m] - D) / A;
             if (!(kx > 0.0) || !std::isfinite(kx))
@@ -208,19 +209,6 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
             kxs.push_back(kx);
             sigs.push_back(sv);
         }
-        auto tryInject = [&](Real kxInj) {
-            if (!(kxInj > 0.0) || !std::isfinite(kxInj))
-                return;
-            const Volatility svInj = pureBlackVolTs->blackVol(marketExpiries[j], kxInj, true);
-            if (std::isfinite(svInj) && svInj > 0.0) {
-                kxs.push_back(kxInj);
-                sigs.push_back(svInj);
-            }
-        };
-        if (useInjectedMinStrikeKxForSmile)
-            tryInject(injectedMinStrikeKxForSmile);
-        if (useInjectedMaxStrikeKxForSmile)
-            tryInject(injectedMaxStrikeKxForSmile);
         if (kxs.size() < 2) {
             fillColumnDirect();
             continue;
@@ -258,26 +246,35 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
             continue;
         }
 
-        MonotonicCubicNaturalSpline smileInterp(ux.begin(), ux.end(), uy.begin());
+        std::vector<Real> uw(uy.size());
+        for (Size t = 0; t < uy.size(); ++t)
+            uw[t] = uy[t] * uy[t] * Texp;
+        MonotonicCubicNaturalSpline smileInterp(ux.begin(), ux.end(), uw.begin());
         const Real kxSupportLo = ux.front();
         const Real kxSupportHi = ux.back();
-        const Volatility sigLo = smileInterp(kxSupportLo, false);
-        const Volatility sigHi = smileInterp(kxSupportHi, false);
+        const Real wLo = smileInterp(kxSupportLo, false);
+        const Real wHi = smileInterp(kxSupportHi, false);
         const Real derLo = smileInterp.derivative(kxSupportLo, false);
         const Real derHi = smileInterp.derivative(kxSupportHi, false);
+        const auto sigmaFromW = [&](Real w) -> Volatility {
+            if (!(w > 0.0) || !std::isfinite(w))
+                return Null<Volatility>();
+            return std::sqrt(w / Texp);
+        };
         for (Size i = 0; i < marketXStrikes.size(); ++i) {
             const Real kxTgt = marketXStrikes[i];
-            Volatility sigma;
+            Real w;
             if (kxTgt < kxSupportLo) {
-                QL_REQUIRE(sigLo > 0.0 && std::isfinite(sigLo) && std::isfinite(derLo),
-                           "left linear wing requires positive finite sigma and derivative at kx_min");
-                sigma = sigLo + (kxTgt - kxSupportLo) * derLo;
+                QL_REQUIRE(wLo > 0.0 && std::isfinite(wLo) && std::isfinite(derLo),
+                           "left linear wing requires positive finite w and derivative at kx_min");
+                w = wLo + (kxTgt - kxSupportLo) * derLo;
             } else if (kxTgt > kxSupportHi) {
-                QL_REQUIRE(sigHi > 0.0 && std::isfinite(sigHi) && std::isfinite(derHi),
-                           "right linear wing requires positive finite sigma and derivative at kx_max");
-                sigma = sigHi + (kxTgt - kxSupportHi) * derHi;
+                QL_REQUIRE(wHi > 0.0 && std::isfinite(wHi) && std::isfinite(derHi),
+                           "right linear wing requires positive finite w and derivative at kx_max");
+                w = wHi + (kxTgt - kxSupportHi) * derHi;
             } else
-                sigma = smileInterp(kxTgt, false);
+                w = smileInterp(kxTgt, false);
+            Volatility sigma = sigmaFromW(w);
             if (!std::isfinite(sigma) || sigma <= 0.0)
                 sigma = uy.front();
             QL_REQUIRE(std::isfinite(sigma) && sigma > 0.0,
@@ -298,8 +295,8 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
         today, calendar,
         marketExpiries, marketXStrikes,
         impliedVolsX, dayCounter,
-        BlackVarianceSurface::ConstantExtrapolation,
-        BlackVarianceSurface::ConstantExtrapolation);
+        BlackVarianceSurface::InterpolatorDefaultExtrapolation,
+        BlackVarianceSurface::InterpolatorDefaultExtrapolation);
     blackSurfaceX->setInterpolation<LinearTimeCubicStrike>();
     blackSurfaceX->enableExtrapolation();
     Handle<BlackVolTermStructure> rebuiltPureBlackVolTs(blackSurfaceX);
@@ -919,6 +916,12 @@ void BuehlerModel::calibration(const bool runValidation) {
         kxInjectedSmileLo,
         true,
         kxInjectedSmileHi);
+
+    QL_REQUIRE(!impliedVolXTs_.empty(),
+               "BuehlerModel::calibration: empty rebuilt σ_X Black surface");
+    // Replace the market-S wrapper: after the nodal X rebuild, σ_X lives on its own
+    // surface (lin-T/cubic-K). FD/queries must not re-enter market-S interpolation.
+    pureBlackVolTs_ = impliedVolXTs_;
 
     mcSigmaLookupCache_.reset();
 
