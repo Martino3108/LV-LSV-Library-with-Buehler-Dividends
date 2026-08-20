@@ -52,3 +52,6 @@ Untitled.*
 forward_start_sweep_animation.ipynb
 *.log
 .cache/
+
+# Report (not part of the library)
+main.tex

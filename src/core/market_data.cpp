@@ -112,16 +112,7 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
         expiries_.push_back(dateFromAct365YearFraction(today_, t, calendar_));
     }
 
-    marketHorizon_ = today_;
-    if (!expiries_.empty()) {
-        marketHorizon_ = std::max(marketHorizon_, expiries_.back());
-    }
-    if (!riskFreeDates_.empty()) {
-        marketHorizon_ = std::max(marketHorizon_, riskFreeDates_.back());
-    }
-    if (!repoDates_.empty()) {
-        marketHorizon_ = std::max(marketHorizon_, repoDates_.back());
-    }
+    marketHorizon_ = affineTabulationHorizon(today_, expiries_.back(), calendar_);
 
     impliedVols_ = Matrix(strikes_.size(), expiries_.size(), Null<Real>());
 
@@ -168,9 +159,6 @@ void MarketData::loadFromTables(const MarketDataTables& tables) {
         dividendDates_.push_back(parseIsoDate(tables.dividendDates[i]));
         dividendAmounts_.push_back(cash);
         dividendProportional_.push_back(proportional);
-    }
-    if (!dividendDates_.empty()) {
-        marketHorizon_ = std::max(marketHorizon_, dividendDates_.back());
     }
 
     QL_REQUIRE(tables.bergomiK > 0.0, "MarketDataTables: bergomi_k must be positive");
@@ -262,8 +250,7 @@ void MarketData::loadSampleMarketSnapshot() {
     riskFreeZeroRates_.insert(riskFreeZeroRates_.end(), rfrValues.begin(), rfrValues.end());
     repoZeroRates_.insert(repoZeroRates_.end(), repoValues.begin(), repoValues.end());
 
-    marketHorizon_ = std::max(expiries_.back(),
-                              std::max(riskFreeDates_.back(), repoDates_.back()));
+    marketHorizon_ = affineTabulationHorizon(today_, expiries_.back(), calendar_);
 
     // --- Implied vol surface ---
     // BlackVarianceSurface expects Matrix[nStrikes][nExpiries]
@@ -314,9 +301,6 @@ void MarketData::loadSampleMarketSnapshot() {
         dividendAmounts_.push_back(dividendValues[i]);
         dividendProportional_.push_back(0.0);
     }
-    if (!dividendDates_.empty()) {
-        marketHorizon_ = std::max(marketHorizon_, dividendDates_.back());
-    }
     buildQuantLibHandles();
 }
 
@@ -361,8 +345,7 @@ void MarketData::loadConstantMock() {
     riskFreeZeroRates_.assign(riskFreeDates_.size(), rFlat);
     repoZeroRates_.assign(repoDates_.size(), repoFlat);
 
-    marketHorizon_ = std::max(expiries_.back(),
-                              std::max(riskFreeDates_.back(), repoDates_.back()));
+    marketHorizon_ = affineTabulationHorizon(today_, expiries_.back(), calendar_);
 
     // Constant implied-vol matrix over the same strike/expiry grid.
     const Volatility sigmaFlat = 0.20;

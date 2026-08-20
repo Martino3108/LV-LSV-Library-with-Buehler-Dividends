@@ -28,6 +28,14 @@ inline QuantLib::Date dateFromAct365YearFraction(const QuantLib::Date& today,
     return today + static_cast<QuantLib::Integer>(std::lround(t * 365.0));
 }
 
+/** Last vol expiry, floored at 10Y ACT/365. Used as the A(t)/D(t) tabulation end. */
+inline QuantLib::Date affineTabulationHorizon(const QuantLib::Date& today,
+                                              const QuantLib::Date& lastVolExpiry,
+                                              const QuantLib::Calendar& calendar) {
+    const QuantLib::Date tenY = dateFromAct365YearFraction(today, 10.0, calendar);
+    return (lastVolExpiry > tenY) ? lastVolExpiry : tenY;
+}
+
 /** @brief Normalized market tables passed to @c MarketData::loadFromTables. */
 struct MarketDataTables {
     std::string asof;
@@ -73,6 +81,7 @@ public:
     const QuantLib::Date& today() const { return today_; }
     const QuantLib::Calendar& calendar() const { return calendar_; }
     const QuantLib::DayCounter& dayCounter() const { return dayCounter_; }
+    /** @brief Affine tabulation end: max(last vol expiry, 10Y ACT/365). */
     const QuantLib::Date& marketHorizon() const { return marketHorizon_; }
     const std::vector<QuantLib::Date>& expiries() const { return expiries_; }
     const std::vector<QuantLib::Real>& strikes() const { return strikes_; }
