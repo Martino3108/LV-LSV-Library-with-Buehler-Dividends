@@ -269,9 +269,9 @@ Handle<LocalVolTermStructure> buildFixedLocalVolFromPureImpliedX(
             } else
                 w = smileInterp(kxTgt, false);
             Volatility sigma = sigmaFromW(w);
-            if (!std::isfinite(sigma) || sigma <= 0.0)
+            if (!isPositiveFiniteVol(sigma))
                 sigma = uy.front();
-            QL_REQUIRE(std::isfinite(sigma) && sigma > 0.0,
+            QL_REQUIRE(isPositiveFiniteVol(sigma),
                        "Buehler implied σ_X: invalid vol after smile column repair");
             impliedVolsX[i][j] = sigma;
         }
