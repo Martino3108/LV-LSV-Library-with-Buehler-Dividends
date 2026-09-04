@@ -678,7 +678,7 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
     const Size strikeEdgePadding = 0;
     const Size expiryEdgePadding = 0;
     constexpr double kMinEuropeanCallPrice = 1.0e-9;
-    constexpr double kMinVerifyFdPriceS = 1.0;
+    constexpr double kMinVerifyFdPriceS = 0.01;
     constexpr double kMaxEuropeanCallPriceAbs = 1.0e8;
     const double spotS0 = benchmarkToDouble(md.spotValue());
     const Real kxTabLo = verifyKxTabLo(buehler);
@@ -1093,7 +1093,7 @@ std::vector<LsvVsLvRow> collect_lsv_vs_lv_grid(const MarketData& md,
     const Size strikeEdgePadding = 0;
     const Size expiryEdgePadding = 0;
     constexpr double kMinEuropeanCallPrice = 1.0e-9;
-    constexpr double kMinVerifyFdPriceS = 1.0;
+    constexpr double kMinVerifyFdPriceS = 0.01;
     const double spotS0 = benchmarkToDouble(md.spotValue());
     const Real kxTabLo = verifyKxTabLo(buehler);
     const Real kxTabHi = verifyKxTabHi(buehler);

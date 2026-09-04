@@ -524,6 +524,18 @@ public:
                               save_fixing_dates, lsv_bins, path_workers, extra_dates);
     }
 
+    /** Buehler forward F(0,t) off the affine-node tables (requires preprocessing()). */
+    double debug_forward(const double t) const {
+        return static_cast<double>(model_->forward0T(
+            dateFromAct365YearFraction(market_data_->today(), t, market_data_->calendar())));
+    }
+
+    /** Buehler escrow floor D(t) (requires preprocessing()). */
+    double debug_dividend_escrow(const double t) const {
+        return static_cast<double>(model_->dividendCarry0T(
+            dateFromAct365YearFraction(market_data_->today(), t, market_data_->calendar())));
+    }
+
     struct MarketSummary {
         std::string asof;
         double spot = 0.0;
@@ -979,6 +991,8 @@ PYBIND11_MODULE(pricing_engine, m) {
              py::arg("extra_dates") = std::vector<std::string>{},
              py::call_guard<py::gil_scoped_release>())
         .def("market_summary", &PricingContext::market_summary)
+        .def("debug_forward", &PricingContext::debug_forward, py::arg("t"))
+        .def("debug_dividend_escrow", &PricingContext::debug_dividend_escrow, py::arg("t"))
         .def("price_european_fd", &PricingContext::price_european_fd, py::arg("expiry_iso"),
              py::arg("strike_fraction_of_spot") = 1.0, py::arg("is_call") = true,
              py::arg("quote_space") = "S", py::arg("t_grid_per_year") = kDefaultFdTGridPerYear,
