@@ -14,9 +14,8 @@
 
 class MarketData;
 
-/** Drop verify IV cells whose Black call vega ∂C/∂σ is at or below this floor
- *  (ill-conditioned inversion, not a smile-wing cut). */
-constexpr double kVerifyMinBlackVegaS = 1.0e-8;
+/** Drop verify cells whose Black call vega in pure-X ∂C_X/∂σ (market σ) is at or below this floor. */
+constexpr double kVerifyMinBlackVegaX = 1.0e-6;
 
 /**
  * @brief FD on fixed LV in X vs analytic Black.

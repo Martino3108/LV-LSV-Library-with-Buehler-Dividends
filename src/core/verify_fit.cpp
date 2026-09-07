@@ -18,6 +18,7 @@
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -66,20 +67,16 @@ QuantLib::Real verifyKxTabHi(const BuehlerModel& buehler) {
     return buehler.denseXStrikes().back();
 }
 
-QuantLib::Real blackCallVegaS(QuantLib::Real strikeS,
-                              QuantLib::Real forwardS,
+QuantLib::Real blackCallVegaX(QuantLib::Real kx,
                               QuantLib::Time t,
-                              QuantLib::Volatility sigmaS,
-                              QuantLib::Real discountS) {
+                              QuantLib::Volatility sigma) {
     using namespace QuantLib;
-    if (!(t > 0.0) || !(sigmaS > 0.0) || !(forwardS > 0.0) || !(strikeS > 0.0) ||
-        !(discountS > 0.0) || !std::isfinite(static_cast<double>(sigmaS))) {
+    if (!(t > 0.0) || !(sigma > 0.0) || !(kx > 0.0) || !std::isfinite(static_cast<double>(sigma))) {
         return 0.0;
     }
     try {
-        const Real stdDev = sigmaS * std::sqrt(t);
-        const Real dC_dStdDev =
-            blackFormulaStdDevDerivative(strikeS, forwardS, stdDev, discountS);
+        const Real stdDev = sigma * std::sqrt(t);
+        const Real dC_dStdDev = blackFormulaStdDevDerivative(kx, 1.0, stdDev, 1.0);
         if (!std::isfinite(static_cast<double>(dC_dStdDev)) || dC_dStdDev <= 0.0)
             return 0.0;
         return dC_dStdDev * std::sqrt(t);
@@ -88,13 +85,10 @@ QuantLib::Real blackCallVegaS(QuantLib::Real strikeS,
     }
 }
 
-bool usableVerifyVegaS(QuantLib::Real strikeS,
-                       QuantLib::Real forwardS,
-                       QuantLib::Time t,
-                       QuantLib::Volatility sigmaS,
-                       QuantLib::Real discountS) {
-    return blackCallVegaS(strikeS, forwardS, t, sigmaS, discountS) > kVerifyMinBlackVegaS;
+bool usableVerifyVegaX(QuantLib::Real kx, QuantLib::Time t, QuantLib::Volatility sigma) {
+    return blackCallVegaX(kx, t, sigma) > kVerifyMinBlackVegaX;
 }
+
 } // namespace
 
 void export_lv_fixed_x_csv(const BuehlerModel& buehler,
@@ -460,8 +454,7 @@ void verify_LV_BS_consistency(const MarketData& md,
                         const double sigmaImpS = benchmarkToDouble(stdDevImp / std::sqrt(t));
                         const double sigmaMktS = benchmarkToDouble(sigmaMarketS);
                         if (std::isfinite(sigmaImpS) && sigmaImpS > 0.0 &&
-                            std::isfinite(sigmaMktS) && sigmaMktS > 0.0 &&
-                            usableVerifyVegaS(strikeS, forwardS, t, sigmaMktS, discountS)) {
+                            std::isfinite(sigmaMktS) && sigmaMktS > 0.0) {
                             BuehlerSigmaSFromLvRow sRow;
                             sRow.expiry = expiry;
                             sRow.strikeS = strikeS;
@@ -678,7 +671,6 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
     const Size strikeEdgePadding = 0;
     const Size expiryEdgePadding = 0;
     constexpr double kMinEuropeanCallPrice = 1.0e-9;
-    constexpr double kMinVerifyFdPriceS = 0.01;
     constexpr double kMaxEuropeanCallPriceAbs = 1.0e8;
     const double spotS0 = benchmarkToDouble(md.spotValue());
     const Real kxTabLo = verifyKxTabLo(buehler);
@@ -769,9 +761,6 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
             if (!std::isfinite(lvPriceSD) || std::fabs(lvPriceSD) > kMaxEuropeanCallPriceAbs) {
                 continue;
             }
-            if (lvPriceSD < kMinVerifyFdPriceS) {
-                continue;
-            }
 
             const Real D = buehler.dividendCarry0T(expiry);
             const Real A = buehler.forward0T(expiry) - D;
@@ -781,7 +770,13 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
             const Real forwardS = buehler.forward0T(expiry);
             const Real discountS = buehler.riskFreeTs()->discount(expiry);
             const Real scaleS = discountS * A;
+            if (!(scaleS > 0.0)) {
+                continue;
+            }
             const Volatility sigmaSeedS = md.blackVolTs()->blackVol(expiry, strikeS, true);
+            if (!usableVerifyVegaX(kx, t, sigmaSeedS)) {
+                continue;
+            }
             const Real ivLvS = tryImpliedSigmaS(strikeS, forwardS, lvPriceS, discountS, t, sigmaSeedS);
             ScenarioRow scenario;
             scenario.expiry = expiry;
@@ -827,8 +822,7 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
                   << ", skip earliest " << earlyExpirySkip << " expiry pillar(s), kxTab=["
                   << kxTabLo << ", " << kxTabHi << "]"
                   << "\nFD grid: " << tGridPerYear << " t-steps/year x " << xGrid
-                  << " x-nodes; drop rows with LVPrice (FD in S) < " << kMinVerifyFdPriceS
-                  << "; FD failed: " << nSkipFdFailed << '\n'
+                  << " x-nodes; FD failed: " << nSkipFdFailed << '\n'
                   << "Scenarios: " << scenarios.size() << '\n'
                   << std::flush;
     } else {
@@ -895,9 +889,7 @@ void verify_lsv_mc_vs_lv_fd(const MarketData& md,
             scenario.ivLvS != Null<Real>() ? scenario.ivLvS : 0.2;
         row.ivLsvS = tryImpliedSigmaS(scenario.strikeS, scenario.forwardS, row.lsvPriceS,
                                       scenario.discountS, scenario.t, ivGuessForLsv);
-        if (scenario.ivLvS != Null<Real>() && row.ivLsvS != Null<Real>() &&
-            usableVerifyVegaS(scenario.strikeS, scenario.forwardS, scenario.t, scenario.ivLvS,
-                              scenario.discountS)) {
+        if (scenario.ivLvS != Null<Real>() && row.ivLsvS != Null<Real>()) {
             row.inIvTable = true;
             row.absErrIvBp =
                 10000.0 * std::fabs(benchmarkToDouble(row.ivLsvS) - benchmarkToDouble(scenario.ivLvS));
@@ -996,36 +988,80 @@ std::vector<LvIvFitRow> collect_lv_iv_fit_grid(const MarketData& md,
     QL_REQUIRE(tGridPerYear > 0, "collect_lv_iv_fit_grid: tGridPerYear must be positive");
     QL_REQUIRE(xGrid > 0, "collect_lv_iv_fit_grid: xGrid must be positive");
 
-    constexpr double kMinEuropeanCallPrice = 1.0e-9;
     const Size earlyExpirySkip = 0;
     const Size expiryStart = earlyExpirySkip;
     const Real kxTabLo = verifyKxTabLo(buehler);
     const Real kxTabHi = verifyKxTabHi(buehler);
+    const bool diag = (std::getenv("VERIFY_LV_SKIP_DIAG") != nullptr);
+    const Real spotS = md.spotValue();
+    Size nTotal = 0;
+    Size nSkipT = 0;
+    Size nSkipA = 0;
+    Size nSkipKxNonPos = 0;
+    Size nSkipKxBelow = 0;
+    Size nSkipKxAbove = 0;
+    Size nSkipFd = 0;
+    Size nSkipVega = 0;
+    Size nSkipIvThrow = 0;
+    Size nSkipIvBad = 0;
+    Size nKeep = 0;
+    struct DroppedCell {
+        double t = 0.0;
+        double kOverS = 0.0;
+        double kx = 0.0;
+        double cS = 0.0;
+        double cX = 0.0;
+        const char* reason = "";
+    };
+    std::vector<DroppedCell> dropped;
 
     std::vector<LvIvFitRow> rows;
     for (Size j = expiryStart; j < md.expiries().size(); ++j) {
         const Date expiry = md.expiries()[j];
         const Time t = md.dayCounter().yearFraction(md.today(), expiry);
-        if (t <= 0.0) {
-            continue;
-        }
-        const Real forwardS = buehler.forward0T(expiry);
-        const Real discountS = buehler.riskFreeTs()->discount(expiry);
-        const Volatility sigmaSeedS = md.blackVolTs()->blackVol(expiry, md.strikes().front(), true);
-
         for (Size i = 0; i < md.strikes().size(); ++i) {
+            ++nTotal;
             const Real strikeS = md.strikes()[i];
+            const double kOverS = (spotS > 0.0) ? benchmarkToDouble(strikeS / spotS) : 0.0;
+            if (t <= 0.0) {
+                ++nSkipT;
+                if (diag)
+                    dropped.push_back({benchmarkToDouble(t), kOverS, 0.0, 0.0, 0.0, "t<=0"});
+                continue;
+            }
+            const Real forwardS = buehler.forward0T(expiry);
+            const Real discountS = buehler.riskFreeTs()->discount(expiry);
+            const Volatility sigmaSeedS =
+                md.blackVolTs()->blackVol(expiry, md.strikes().front(), true);
+
             const Real D = buehler.dividendCarry0T(expiry);
             const Real A = buehler.forward0T(expiry) - D;
             if (A <= 0.0) {
+                ++nSkipA;
+                if (diag)
+                    dropped.push_back({benchmarkToDouble(t), kOverS, 0.0, 0.0, 0.0, "A<=0"});
                 continue;
             }
             const Real kx = (strikeS - D) / A;
             if (kx <= 0.0) {
+                ++nSkipKxNonPos;
+                if (diag)
+                    dropped.push_back(
+                        {benchmarkToDouble(t), kOverS, benchmarkToDouble(kx), 0.0, 0.0, "kx<=0"});
                 continue;
             }
-            if (!buehler.denseXStrikes().empty() &&
-                (kx <= kxTabLo + 1.0e-12 || kx > kxTabHi + 1.0e-12)) {
+            if (!buehler.denseXStrikes().empty() && kx <= kxTabLo + 1.0e-12) {
+                ++nSkipKxBelow;
+                if (diag)
+                    dropped.push_back({benchmarkToDouble(t), kOverS, benchmarkToDouble(kx), 0.0, 0.0,
+                                       "kx<=kxTabLo"});
+                continue;
+            }
+            if (!buehler.denseXStrikes().empty() && kx > kxTabHi + 1.0e-12) {
+                ++nSkipKxAbove;
+                if (diag)
+                    dropped.push_back({benchmarkToDouble(t), kOverS, benchmarkToDouble(kx), 0.0, 0.0,
+                                       "kx>kxTabHi"});
                 continue;
             }
 
@@ -1040,33 +1076,74 @@ std::vector<LvIvFitRow> collect_lv_iv_fit_grid(const MarketData& md,
                                               xGrid)
                         .price(buehler);
             } catch (const std::exception&) {
+                ++nSkipFd;
+                if (diag)
+                    dropped.push_back({benchmarkToDouble(t), kOverS, benchmarkToDouble(kx), 0.0, 0.0,
+                                       "fd_fail"});
                 continue;
             }
-            if (!(lvPriceS > kMinEuropeanCallPrice)) {
-                continue;
-            }
-
+            const double cS = benchmarkToDouble(lvPriceS);
+            const Real scaleS = discountS * A;
+            const double cX =
+                (scaleS > 0.0) ? (cS / benchmarkToDouble(scaleS))
+                               : std::numeric_limits<double>::quiet_NaN();
             const Volatility sigmaMarketS = md.blackVolTs()->blackVol(expiry, strikeS, true);
+            const double sigmaMktS = benchmarkToDouble(sigmaMarketS);
+            const double vegaX = benchmarkToDouble(blackCallVegaX(kx, t, sigmaMarketS));
+            if (!usableVerifyVegaX(kx, t, sigmaMarketS)) {
+                ++nSkipVega;
+                if (diag) {
+                    std::cout << "  drop T=" << t << " K/S=" << kOverS << " K=" << strikeS
+                              << " sigma=" << sigmaMktS << " vega_X=" << vegaX
+                              << " C_X=" << cX << " reason=vega_X<=1e-6\n";
+                    dropped.push_back({benchmarkToDouble(t), kOverS, benchmarkToDouble(kx), cS, cX,
+                                       "vega_X<=1e-6"});
+                }
+                continue;
+            }
             try {
                 const Real stdDevImp = blackFormulaImpliedStdDev(
                     QuantLib::Option::Call, strikeS, forwardS, lvPriceS, discountS, 0.0,
                     sigmaSeedS * std::sqrt(t), 1.0e-8, 200);
                 const double sigmaLvS = benchmarkToDouble(stdDevImp / std::sqrt(t));
-                const double sigmaMktS = benchmarkToDouble(sigmaMarketS);
-                if (std::isfinite(sigmaLvS) && sigmaLvS > 0.0 && std::isfinite(sigmaMktS) &&
-                    sigmaMktS > 0.0 &&
-                    usableVerifyVegaS(strikeS, forwardS, t, sigmaMktS, discountS)) {
-                    LvIvFitRow row;
-                    row.expiry = expiry;
-                    row.strikeS = strikeS;
-                    row.tenorYears = t;
-                    row.sigmaMarketS = sigmaMktS;
-                    row.sigmaLvS = sigmaLvS;
-                    row.absErrIvBp = 10000.0 * std::fabs(sigmaLvS - sigmaMktS);
-                    rows.push_back(std::move(row));
+                if (!(std::isfinite(sigmaLvS) && sigmaLvS > 0.0 && std::isfinite(sigmaMktS) &&
+                      sigmaMktS > 0.0)) {
+                    ++nSkipIvBad;
+                    if (diag)
+                        dropped.push_back({benchmarkToDouble(t), kOverS, benchmarkToDouble(kx), cS,
+                                           cX, "iv_bad"});
+                    continue;
                 }
+                LvIvFitRow row;
+                row.expiry = expiry;
+                row.strikeS = strikeS;
+                row.tenorYears = t;
+                row.sigmaMarketS = sigmaMktS;
+                row.sigmaLvS = sigmaLvS;
+                row.absErrIvBp = 10000.0 * std::fabs(sigmaLvS - sigmaMktS);
+                rows.push_back(std::move(row));
+                ++nKeep;
             } catch (const std::exception&) {
+                ++nSkipIvThrow;
+                if (diag)
+                    dropped.push_back({benchmarkToDouble(t), kOverS, benchmarkToDouble(kx), cS, cX,
+                                       "iv_throw"});
             }
+        }
+    }
+    if (diag) {
+        std::cout << "\n=== collect_lv_iv_fit_grid skip diag (vega_X>1e-6) ===\n"
+                  << "grid=" << nTotal << " kept=" << nKeep
+                  << " | kxTabLo=" << kxTabLo << " kxTabHi=" << kxTabHi << '\n'
+                  << "  t<=0: " << nSkipT << " | A<=0: " << nSkipA
+                  << " | kx<=0: " << nSkipKxNonPos
+                  << " | kx<=kxTabLo: " << nSkipKxBelow
+                  << " | kx>kxTabHi: " << nSkipKxAbove << '\n'
+                  << "  fd_fail: " << nSkipFd << " | vega_X<=1e-6: " << nSkipVega
+                  << " | iv_throw: " << nSkipIvThrow << " | iv_bad: " << nSkipIvBad << '\n';
+        for (const DroppedCell& d : dropped) {
+            std::cout << "  drop T=" << d.t << " K/S=" << d.kOverS << " kx=" << d.kx
+                      << " C_S=" << d.cS << " C_X=" << d.cX << " reason=" << d.reason << '\n';
         }
     }
     return rows;
@@ -1093,8 +1170,6 @@ std::vector<LsvVsLvRow> collect_lsv_vs_lv_grid(const MarketData& md,
     const Size strikeEdgePadding = 0;
     const Size expiryEdgePadding = 0;
     constexpr double kMinEuropeanCallPrice = 1.0e-9;
-    constexpr double kMinVerifyFdPriceS = 0.01;
-    const double spotS0 = benchmarkToDouble(md.spotValue());
     const Real kxTabLo = verifyKxTabLo(buehler);
     const Real kxTabHi = verifyKxTabHi(buehler);
     const Size earlyExpirySkip = 0;
@@ -1165,14 +1240,18 @@ std::vector<LsvVsLvRow> collect_lsv_vs_lv_grid(const MarketData& md,
                 ++nSkipFdFailed;
                 continue;
             }
-            if (!(lvPriceS > kMinVerifyFdPriceS)) {
-                continue;
-            }
 
             const Real forwardS = buehler.forward0T(expiry);
             const Real discountS = buehler.riskFreeTs()->discount(expiry);
-            const Real scaleS = discountS * (forwardS - buehler.dividendCarry0T(expiry));
+            const Real A = forwardS - buehler.dividendCarry0T(expiry);
+            if (!(A > 0.0) || !(discountS > 0.0)) {
+                continue;
+            }
+            const Real scaleS = discountS * A;
             const Volatility sigmaSeedS = md.blackVolTs()->blackVol(expiry, strikeS, true);
+            if (!usableVerifyVegaX(kx, t, sigmaSeedS)) {
+                continue;
+            }
             const Real ivLvS =
                 tryImpliedSigmaS(strikeS, forwardS, lvPriceS, discountS, t, sigmaSeedS);
             ScenarioRow scenario;
@@ -1225,6 +1304,10 @@ std::vector<LsvVsLvRow> collect_lsv_vs_lv_grid(const MarketData& md,
 
     std::vector<LsvVsLvRow> results;
     results.reserve(scenarios.size());
+    const bool diag = (std::getenv("VERIFY_LSV_SKIP_DIAG") != nullptr);
+    const Real spotS0 = md.spotValue();
+    Size nSkipIvLv = 0;
+    Size nSkipIvLsv = 0;
     for (Size s = 0; s < scenarios.size(); ++s) {
         QL_REQUIRE(subbankCount[s] == nSubbanks,
                    "collect_lsv_vs_lv_grid: incomplete sub-bank coverage");
@@ -1244,15 +1327,49 @@ std::vector<LsvVsLvRow> collect_lsv_vs_lv_grid(const MarketData& md,
             scenario.ivLvS != Null<Real>() ? scenario.ivLvS : static_cast<Real>(0.2);
         const Real ivLsv = tryImpliedSigmaS(scenario.strikeS, scenario.forwardS, lsvPriceS,
                                             scenario.discountS, scenario.t, ivGuessForLsv);
-        if (scenario.ivLvS == Null<Real>() || ivLsv == Null<Real>() ||
-            !usableVerifyVegaS(scenario.strikeS, scenario.forwardS, scenario.t, scenario.ivLvS,
-                               scenario.discountS)) {
+        if (scenario.ivLvS == Null<Real>()) {
+            ++nSkipIvLv;
+            if (diag) {
+                const double kOverS =
+                    (spotS0 > 0.0) ? benchmarkToDouble(scenario.strikeS / spotS0) : 0.0;
+                const double cX =
+                    (scenario.scaleS > 0.0)
+                        ? benchmarkToDouble(scenario.lvPriceS) / benchmarkToDouble(scenario.scaleS)
+                        : 0.0;
+                std::cout << "  LSV drop ivLv=Null T=" << scenario.t << " K/S=" << kOverS
+                          << " C_S^LV=" << scenario.lvPriceS << " C_X^LV=" << cX
+                          << " C_S^LSV=" << lsvPriceS << '\n';
+            }
+            continue;
+        }
+        if (ivLsv == Null<Real>()) {
+            ++nSkipIvLsv;
+            if (diag) {
+                const double kOverS =
+                    (spotS0 > 0.0) ? benchmarkToDouble(scenario.strikeS / spotS0) : 0.0;
+                const double lvX =
+                    (scenario.scaleS > 0.0)
+                        ? benchmarkToDouble(scenario.lvPriceS) / benchmarkToDouble(scenario.scaleS)
+                        : 0.0;
+                const double lsvX =
+                    (scenario.scaleS > 0.0) ? benchmarkToDouble(lsvPriceS) / benchmarkToDouble(scenario.scaleS)
+                                            : 0.0;
+                std::cout << "  LSV drop ivLsv=Null T=" << scenario.t << " K/S=" << kOverS
+                          << " C_S^LV=" << scenario.lvPriceS << " C_X^LV=" << lvX
+                          << " C_S^LSV=" << lsvPriceS << " C_X^LSV=" << lsvX
+                          << " ivLv=" << scenario.ivLvS << '\n';
+            }
             continue;
         }
         row.ivLsvS = benchmarkToDouble(ivLsv);
         row.absErrIvBp =
             10000.0 * std::fabs(benchmarkToDouble(ivLsv) - benchmarkToDouble(scenario.ivLvS));
         results.push_back(std::move(row));
+    }
+    if (diag) {
+        std::cout << "=== collect_lsv_vs_lv_grid IV skips ===\n"
+                  << "scenarios=" << scenarios.size() << " kept=" << results.size()
+                  << " | ivLv=Null: " << nSkipIvLv << " | ivLsv=Null: " << nSkipIvLsv << '\n';
     }
     return results;
 }
